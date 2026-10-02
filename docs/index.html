@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0A246A">
+  <meta name="description" content="SeaMic internal DSP test console.">
+  <title>SeaMic — DSP Console</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <span class="brand">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <span>SeaMic <span class="brand-separator">/</span> DSP console</span>
+    </span>
+    <span class="header-note">Internal console · Cmajor requires local HTTP</span>
+  </header>
+
+  <main>
+    <section class="console" aria-label="SeaMic audio console">
+      <section class="rack-block motor-block" aria-labelledby="motor-title">
+        <div class="block-heading">
+          <p class="rack-index">SESSION CONTROL</p>
+          <span class="block-state" id="engine-badge">STOPPED</span>
+        </div>
+        <h1 id="motor-title">Audio engine</h1>
+        <div class="motor-controls">
+          <button class="player-button button-primary" id="start-audio" type="button">Start engine · dry monitor</button>
+          <button class="player-button button-secondary" id="stop-audio" type="button" disabled>Stop</button>
+          <span class="monitor-label">Monitor: <strong id="monitor-route">MICROPHONE → OUTPUT (DRY)</strong></span>
+        </div>
+        <p class="player-status" id="cmajor-status" role="status" aria-live="polite">Engine stopped</p>
+        <section class="input-device-controls" aria-labelledby="input-device-title">
+          <div>
+            <p class="rack-index">AUDIO INPUT</p>
+            <h2 id="input-device-title">Choose microphone</h2>
+          </div>
+          <label for="input-device-select">Input device</label>
+          <select id="input-device-select" aria-describedby="input-device-status">
+            <option value="">Choose an input device...</option>
+          </select>
+          <button class="player-button" id="refresh-input-devices" type="button">Refresh devices</button>
+          <button class="player-button" id="enable-input-devices" type="button">Allow access &amp; show device names</button>
+          <p id="input-device-status" role="status" aria-live="polite">Select a microphone before starting the engine. Device names may require microphone permission.</p>
+        </section>
+        <section class="preset-controls" aria-labelledby="preset-title">
+          <div>
+            <p class="rack-index">MICROPHONE PRESETS</p>
+            <h2 id="preset-title">DSP profiles</h2>
+          </div>
+          <label for="preset-select">Profile</label>
+          <select id="preset-select" aria-label="Select a DSP profile"></select>
+          <button class="player-button button-primary" id="apply-preset" type="button">Apply profile</button>
+          <button class="player-button" id="save-preset" type="button">Save current settings as preset</button>
+          <button class="player-button button-secondary" id="delete-preset" type="button" disabled>Delete saved preset</button>
+          <p id="preset-status" role="status" aria-live="polite">Presets change exposed DSP parameters only. Modules remain bypassed until activated.</p>
+        </section>
+        <section class="audio-test" aria-labelledby="audio-test-title">
+          <div class="block-heading">
+            <div>
+              <p class="rack-index">CHAIN TEST INPUT</p>
+              <h2 id="audio-test-title">Record or load test audio</h2>
+            </div>
+            <span class="block-state" id="audio-test-state">MICROPHONE INPUT</span>
+          </div>
+          <p class="strip-description">
+            Record microphone input or load a WAV file, then play it once or loop it through the DSP mic input.
+          </p>
+          <div class="audio-test-controls">
+            <button class="player-button" id="record-audio" type="button" disabled>● Record microphone</button>
+            <button class="player-button" id="finish-recording" type="button" disabled>■ Finish recording</button>
+            <label class="file-picker">
+              Load mic/test WAV
+              <input id="wav-file" type="file" accept=".wav,.wave,audio/wav,audio/x-wav" disabled>
+            </label>
+            <button class="player-button" id="download-recording" type="button" disabled>Save recording as WAV</button>
+          </div>
+          <div class="clip-playback" aria-label="Recording and test clip playback">
+            <label for="clip-source">Test audio</label>
+            <select id="clip-source" disabled>
+              <option value="">No clip loaded</option>
+            </select>
+            <label for="clip-playback-route">Playback route</label>
+            <select id="clip-playback-route" aria-label="Test audio playback route">
+              <option value="mic">DSP microphone input</option>
+              <option value="aec-reference">Speakers + AEC reference</option>
+            </select>
+            <button class="player-button button-primary" id="play-clip-once" type="button" disabled>▶ Play once to mic input</button>
+            <button class="player-button" id="loop-clip" type="button" disabled>↻ Loop selected route</button>
+            <button class="player-button button-secondary" id="stop-clip" type="button" disabled>■ Stop clip</button>
+          </div>
+          <p class="audio-test-status" id="audio-test-status" role="status" aria-live="polite">Start the engine to record or play test audio.</p>
+          <div class="aec-diagnostics" aria-label="AEC live signal diagnostics">
+            <strong>AEC signal levels</strong>
+            <span>Mic input <output id="aec-mic-level">— dBFS</output></span>
+            <span>Far-end reference <output id="aec-ref-level">— dBFS</output></span>
+            <span>AEC output <output id="aec-out-level">— dBFS</output></span>
+            <span>Mic-to-output level change <output id="aec-level-change">— dB</output></span>
+            <p id="aec-diagnostic-note">Connect a far-end playback source; AEC remains bypassed until one is present. Level change is not a true ERLE measurement.</p>
+          </div>
+        </section>
+      </section>
+
+      <p class="audio-warning">
+        Every DSP module starts bypassed. Use the per-module controls or activate the full chain.
+        Parameter sliders send changes to Cmajor immediately, even while a module is bypassed;
+        activate that module to hear the result. To test AEC, select “Speakers + AEC reference”
+        for test audio; its acoustic echo must reach the microphone. Use headphones.
+      </p>
+
+      <div class="rack-arrow" aria-hidden="true">▼</div>
+
+      <section class="rack-block input-block" aria-labelledby="mic-title">
+        <div class="block-heading">
+          <p class="rack-index">INPUT 01</p>
+          <span class="block-state" id="mic-state">STOPPED</span>
+        </div>
+        <h2 id="mic-title">Microphone</h2>
+        <p class="strip-description">Mono input · reduced-level dry monitoring.</p>
+        <div class="meter-readout" id="input-level-readout">— dBFS</div>
+        <canvas class="waveform-display input-waveform" id="input-waveform" role="img" aria-label="Microphone waveform, last five seconds"></canvas>
+        <div class="waveform-scale" aria-hidden="true"><span>−5 s</span><span>−2.5 s</span><span>Now</span></div>
+        <div class="level-meter" role="meter" aria-label="Input peak" aria-valuemin="-60" aria-valuemax="0" aria-valuenow="-60">
+          <span></span>
+        </div>
+        <div class="meter-scale" aria-hidden="true"><span>-60</span><span>-40</span><span>-20</span><span>0 dBFS</span></div>
+      </section>
+
+    </section>
+
+    <section class="signal-diagram" aria-labelledby="signal-diagram-title">
+      <div class="block-heading">
+        <div>
+          <p class="rack-index">SIGNAL ARCHITECTURE</p>
+          <h2 id="signal-diagram-title">Target chain and implementation status</h2>
+        </div>
+      </div>
+      <p class="signal-diagram-note">
+        Each DSP stage is an independent Cmajor patch with its own controls and bypass. The patches are loaded and connected in series in the order shown.
+      </p>
+      <ul class="signal-legend" aria-label="Implementation legend">
+        <li><span class="status-mark status-implemented"></span> Implemented</li>
+        <li><span class="status-mark status-bypassed"></span> Implemented · bypassed</li>
+        <li><span class="status-mark status-pending"></span> Pending / target architecture</li>
+      </ul>
+      <ol class="signal-chain" aria-label="Target chain: ADC, seven DSP modules, output, Opus encoder, and network">
+        <li class="signal-node" data-status="implemented">
+          <span class="signal-node-type">INPUT · 16 kHz · f32</span>
+          <strong>ADC</strong>
+          <span class="signal-node-detail">Browser microphone capture.</span>
+          <span class="signal-stage-status">Host input available</span>
+        </li>
+        <li class="signal-connector" aria-hidden="true">▼</li>
+        <li class="signal-node" data-status="bypassed" data-solo="dc">
+          <span class="signal-node-type">DSP MODULE 01</span>
+          <strong>DC Offset Removal</strong>
+          <span class="signal-node-detail">20 Hz high-pass filter before AEC; also cleans the reference.</span>
+          <span class="signal-stage-status">Implemented · starts bypassed</span>
+          <span class="module-state" data-state="bypassed">BYPASSED</span>
+          <button class="module-toggle" type="button" data-module="dc" aria-pressed="false" disabled>Activate</button>
+          <button class="solo-button" type="button" data-solo="dc" aria-pressed="false" disabled>Solo</button>
+          <div class="patch-gui" id="patch-gui-dc" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
+          <details class="module-info">
+            <summary>Implementation and Cmajor</summary>
+            <p>Each input uses a first-order 20 Hz high-pass filter. The patch filters both microphone and playback-reference signals when active; Solo tests only the microphone path.</p>
+            <pre><code>float coefficient = exp (-float (twoPi) * 20.0f
+                         / float (processor.frequency));
+float filtered = sample - previousInput
+               + coefficient * previousOutput;
+out &lt;- isBypassed ? sample : filtered;</code></pre>
+            <p>Source: <code>cmajor/modules/dsp/DCOffsetRemoval.cmajor</code>.</p>
+          </details>
+        </li>
+        <li class="signal-connector" aria-hidden="true">▼</li>
+        <li class="signal-node" data-status="bypassed" data-solo="aec">
+          <span class="signal-node-type">DSP MODULE 02</span>
+          <strong>AEC</strong>
+          <span class="signal-node-detail">Real-time NLMS echo cancellation using the application playback bus.</span>
+          <span class="signal-stage-status">Implemented · awaiting playback reference</span>
+          <span class="module-state" data-state="bypassed">BYPASSED · AWAITING REFERENCE</span>
+          <aside class="signal-reference" aria-label="AEC reference status">
+            <span aria-hidden="true">◀</span>
+            <span>
+              <strong id="aec-reference-state">NO PLAYBACK SOURCE · AEC BYPASSED</strong><br>
+              Select “Speakers + AEC reference” for test audio, or connect SeaTime playback with
+              <code>SeaMicAudio.connectPlaybackSource(node)</code>. AEC also needs the playback echo in the microphone.
+            </span>
+          </aside>
+          <button class="module-toggle" type="button" data-module="aec" aria-pressed="false" disabled>Waiting for reference</button>
+          <button class="solo-button" type="button" data-solo="aec" aria-pressed="false" disabled>Waiting for reference</button>
+          <div class="patch-gui" id="patch-gui-aec" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
+          <details class="module-info">
+            <summary>Implementation and Cmajor</summary>
+            <p>The adaptive filter estimates echo from the live pre-output playback reference and subtracts that estimate from the microphone. Adaptation pauses during detected double-talk. The default filter has 512 taps; at 16 kHz that covers 32 ms, with less time coverage at higher sample rates.</p>
+            <pre><code>float64 residual = mic - estimatedEcho;
+if (! bypass &amp;&amp; ! adaptationFrozen &amp;&amp; referencePower &gt; 1.0e-8)
+{
+    float64 step = residual * adaptationRate
+        / (referencePower * float64 (activeTaps) + 1.0e-6);
+    for (int tap = 0; tap &lt; activeTaps; ++tap)
+        weights[wrap&lt;1024&gt; (tap)] = float32 (
+            float64 (weights[wrap&lt;1024&gt; (tap)])
+            + step * float64 (referenceHistory[
+                wrap&lt;2048&gt; (position + maxTaps - tap)]));
+}
+cleanedMicrophone &lt;- bypass ? mic : residual;</code></pre>
+            <p>Source: <code>cmajor/modules/aec/SeaMicAEC.cmajor</code>.</p>
+          </details>
+        </li>
+        <li class="signal-connector" aria-hidden="true">▼</li>
+        <li class="signal-node" data-status="bypassed" data-solo="dereverb">
+          <span class="signal-node-type">DSP MODULE 03</span>
+          <strong>De-Reverb (Envelope Masking)</strong>
+          <span class="signal-node-detail">Conservative envelope-based attenuation; no gain boost.</span>
+          <span class="signal-stage-status">Implemented · starts bypassed</span>
+          <span class="module-state" data-state="bypassed">BYPASSED</span>
+          <button class="module-toggle" type="button" data-module="dereverb" aria-pressed="false" disabled>Activate</button>
+          <button class="solo-button" type="button" data-solo="dereverb" aria-pressed="false" disabled>Solo</button>
+          <div class="patch-gui" id="patch-gui-dereverb" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
+          <details class="module-info">
+            <summary>Implementation and Cmajor</summary>
+            <p>Fast and slow level followers compare attacks with room-tail decay. Processing only attenuates: gain is limited to a maximum of 0 dB and a minimum of about −6 dB. Gain reduction follows over 20 ms and recovery over 120 ms. This lightweight envelope shaper is not a full acoustic de-reverberator.</p>
+            <pre><code>float fastCoefficient = level &gt; fastEnvelope
+    ? fastAttack : fastRelease;
+float slowCoefficient = level &gt; slowEnvelope
+    ? slowAttack : slowRelease;
+            fastEnvelope = fastEnvelope
+                + (level - fastEnvelope) * fastCoefficient;
+            slowEnvelope = slowEnvelope
+                + (level - slowEnvelope) * slowCoefficient;
+float ratio = fastEnvelope / (slowEnvelope + 0.0000001f);
+targetGain = pow (max (min (ratio, 1.0f), 0.000001f), intensity);
+targetGain = max (targetGain, minimumGain);
+float gainCoefficient = targetGain &lt; gainEnvelope
+    ? gainAttack : gainRelease;
+gainEnvelope = gainEnvelope
+    + (targetGain - gainEnvelope) * gainCoefficient;
+out &lt;- sample * gainEnvelope;</code></pre>
+            <p>Source: <code>cmajor/modules/dsp/DeReverb.cmajor</code>.</p>
+          </details>
+        </li>
+        <li class="signal-connector" aria-hidden="true">▼</li>
+        <li class="signal-node" data-status="bypassed" data-solo="vad">
+          <span class="signal-node-type">DSP MODULE 04</span>
+          <strong>Noise Gate / VAD</strong>
+          <span class="signal-node-detail">Target: Otsu + envelope follower. Current implementation: RMS, noise floor, SNR hysteresis, and soft gate.</span>
+          <span class="signal-stage-status">Starts bypassed · Otsu and envelope follower pending</span>
+          <span class="module-state" data-state="bypassed">BYPASSED</span>
+          <button class="module-toggle" type="button" data-module="vad" aria-pressed="false" disabled>Activate</button>
+          <button class="solo-button" type="button" data-solo="vad" aria-pressed="false" disabled>Solo</button>
+          <div class="patch-gui" id="patch-gui-vad" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
+          <details class="module-info">
+            <summary>Implementation and Cmajor</summary>
+            <p>The detector tracks a 32 ms rolling RMS level and a noise floor that can fall as the environment gets quieter. It opens above the SNR enter threshold (9 dB default) and begins its close timer below the SNR exit threshold (4 dB default) or when the input is extremely quiet. The close timer holds speech for the VAD hangover (400 ms default); the gate then adds its hold (150 ms default) before fading down over 30 ms to the gate depth (30 dB default). Gate depth, gate hold, hangover, and both SNR thresholds are adjustable in real time above. Otsu classification is not implemented. In Solo, audio passes unchanged while the detector is tested.</p>
+            <pre><code>sumSq = max (0.0f, sumSq - oldest * oldest + x * x);
+float rms = sqrt (sumSq / float (filled));
+float snrDb = 20.0f * log10 (rms / noiseFloor);
+if (isSpeech &gt; 0.5f)
+{
+    if (snrDb &lt; exitT || rms &lt; absoluteExitLevel)
+    {
+        hangCount += 1.0f;
+        if (hangCount &gt;= hangLimit)
+        {
+            isSpeech = 0.0f;
+            hangCount = 0.0f;
+        }
+    }
+    else
+        hangCount = 0.0f;
+}
+else if (snrDb &gt; enterT)
+{
+    isSpeech = 1.0f;
+}
+speech &lt;- isBypassed ? 1.0f : isSpeech;</code></pre>
+            <p>Source: <code>chain2_vad.cmajor</code>.</p>
+          </details>
+        </li>
+        <li class="signal-connector" aria-hidden="true">▼</li>
+        <li class="signal-node" data-status="bypassed" data-solo="loudness">
+          <span class="signal-node-type">DSP MODULE 05</span>
+          <strong>Loudness Normalisation</strong>
+          <span class="signal-node-detail">K-weighted metering and AGC with an RMS detector and gain computer.</span>
+          <span class="signal-stage-status">Starts bypassed · integrated EBU R128 pending</span>
+          <span class="module-state" data-state="bypassed">BYPASSED</span>
+          <button class="module-toggle" type="button" data-module="loudness" aria-pressed="false" disabled>Activate</button>
+          <button class="solo-button" type="button" data-solo="loudness" aria-pressed="false" disabled>Solo</button>
+          <div class="patch-gui" id="patch-gui-loudness" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
+          <details class="module-info">
+            <summary>Implementation and Cmajor</summary>
+            <p>The K-weighted signal feeds a 512-sample RMS measurement for the AGC sidechain. Gain reduction responds over 80 ms and recovery over 1.5 s, with configurable target and gain limits. The output signal is multiplied by the smoothed gain. Full integrated EBU R128 measurement and gating are not implemented.</p>
+            <pre><code>sumSq = max (0.0f, sumSq - oldest * oldest + s * s);
+float rms = sqrt (sumSq / float (filled));
+if (! isBypassed &amp;&amp; sp &gt; 0.5f)
+{
+    float errDb = targetDb - 20.0f * log10 (rms * appliedGain);
+    gainDb += (errDb - gainDb)
+        * (errDb &lt; gainDb ? downCoeff : upCoeff);
+}
+out &lt;- isBypassed ? x : x * appliedGain;</code></pre>
+            <p>Source: <code>chain1_filters.cmajor</code> (K-weighting) and <code>chain3_agc_gate_limit.cmajor</code> (AGC).</p>
+          </details>
+        </li>
+        <li class="signal-connector" aria-hidden="true">▼</li>
+        <li class="signal-node" data-status="bypassed" data-solo="tone">
+          <span class="signal-node-type">DSP MODULE 06</span>
+          <strong>Tone / Warmth</strong>
+          <span class="signal-node-detail">Target: symmetric waveshaper + shelf. Current implementation: asymmetric rational waveshaper followed by a DC blocker.</span>
+          <span class="signal-stage-status">Starts bypassed · symmetric waveshaper and shelf pending</span>
+          <span class="module-state" data-state="bypassed">BYPASSED</span>
+          <button class="module-toggle" type="button" data-module="tone" aria-pressed="false" disabled>Activate</button>
+          <button class="solo-button" type="button" data-solo="tone" aria-pressed="false" disabled>Solo</button>
+          <div class="patch-gui" id="patch-gui-tone" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
+          <details class="module-info">
+            <summary>Implementation and Cmajor</summary>
+            <p>The processor applies drive, a rational soft saturation curve, and a configurable quadratic asymmetry term, then blends the result with the dry input over 5 ms. The patch follows it with a DC blocker. A symmetric waveshaper and tone shelf remain future work.</p>
+            <pre><code>float driven = sample * driveAmount;
+float compressed = driven / (1.0f + abs (driven));
+float shaped = (compressed
+    + asymmetryAmount * compressed * compressed)
+    / (1.0f + asymmetryAmount);
+out &lt;- sample + (shaped * makeupGain - sample) * wetMix;</code></pre>
+            <p>Source: <code>cmajor/modules/dsp/Tone.cmajor</code>.</p>
+          </details>
+        </li>
+        <li class="signal-connector" aria-hidden="true">▼</li>
+        <li class="signal-node" data-status="bypassed" data-solo="limiter">
+          <span class="signal-node-type">DSP MODULE 07</span>
+          <strong>Look-Ahead Limiter</strong>
+          <span class="signal-node-detail">5 ms delay (80 samples at 16 kHz), peak detector, and a −1 dBFS sample-peak ceiling.</span>
+          <span class="signal-stage-status">Implemented · starts bypassed; no oversampled true-peak detection</span>
+          <span class="module-state" data-state="bypassed">BYPASSED</span>
+          <button class="module-toggle" type="button" data-module="limiter" aria-pressed="false" disabled>Activate</button>
+          <button class="solo-button" type="button" data-solo="limiter" aria-pressed="false" disabled>Solo</button>
+          <div class="patch-gui" id="patch-gui-limiter" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
+          <details class="module-info">
+            <summary>Implementation and Cmajor</summary>
+            <p>The peak detector holds the highest recent sample through the 5 ms look-ahead interval. Gain reduction is applied to the matching delayed sample, with a −1.05 dBFS ceiling and a 50 ms gain release. This is sample-peak limiting; inter-sample true peaks are not measured.</p>
+            <pre><code>float targetGain = 1.0f;
+if (peak &gt; ceilLin)
+    targetGain = ceilLin / peak;
+float gainCoefficient = targetGain &lt; gainEnvelope
+    ? gainAttack : gainRelease;
+gainEnvelope = gainEnvelope
+    + (targetGain - gainEnvelope) * gainCoefficient;
+audioDelayLine.at(writePosition) = x;
+int readPosition = writePosition - delaySamples;
+if (readPosition &lt; 0)
+    readPosition = readPosition + 2048;
+out &lt;- isBypassed ? x
+    : audioDelayLine.at(readPosition) * gainEnvelope;</code></pre>
+            <p>Source: <code>chain3_agc_gate_limit.cmajor</code>, processor <code>Limiter</code>.</p>
+          </details>
+        </li>
+        <li class="signal-connector" aria-hidden="true">▼</li>
+        <li class="signal-node" data-status="implemented">
+          <span class="signal-node-type">AUDIO OUTPUT</span>
+          <strong>Output</strong>
+          <span class="signal-node-detail">Patch output to the browser audio device.</span>
+          <span class="signal-stage-status">Implemented · WebAudio host</span>
+        </li>
+        <li class="signal-connector" aria-hidden="true">▼</li>
+        <li class="signal-node" data-status="pending">
+          <span class="signal-node-type">TRANSPORT</span>
+          <strong>Opus Encoder</strong>
+          <span class="signal-node-detail">Voice encoding after the patch.</span>
+          <span class="signal-stage-status">Pending · not part of the current Cmajor patches</span>
+        </li>
+        <li class="signal-connector" aria-hidden="true">▼</li>
+        <li class="signal-node" data-status="pending">
+          <span class="signal-node-type">TRANSPORT</span>
+          <strong>Network</strong>
+          <span class="signal-node-detail">Transport of the encoded stream.</span>
+          <span class="signal-stage-status">Pending · not part of the current Cmajor patches</span>
+        </li>
+      </ol>
+    </section>
+
+    <div class="rack-arrow" aria-hidden="true">▼</div>
+
+    <section class="rack-block output-block" aria-labelledby="output-title">
+      <div class="block-heading">
+        <p class="rack-index">OUTPUT 01</p>
+        <span class="block-state" id="output-state">STANDBY</span>
+      </div>
+      <h2 id="output-title">Output monitor</h2>
+      <p class="strip-description">Output to the device selected by the browser.</p>
+      <div class="meter-readout" id="output-level-readout">— dBFS</div>
+      <canvas class="waveform-display output-waveform" id="output-waveform" role="img" aria-label="Output waveform, last five seconds"></canvas>
+      <div class="waveform-scale" aria-hidden="true"><span>−5 s</span><span>−2.5 s</span><span>Now</span></div>
+      <div class="level-meter output-meter" role="meter" aria-label="Output peak" aria-valuemin="-60" aria-valuemax="0" aria-valuenow="-60">
+        <span></span>
+      </div>
+      <div class="meter-scale" aria-hidden="true"><span>-60</span><span>-40</span><span>-20</span><span>0 dBFS</span></div>
+    </section>
+
+    <div class="motor-controls chain-master-controls">
+      <button class="bypass-button" id="chain-toggle" type="button" aria-pressed="false" disabled>
+        Activate entire DSP chain
+      </button>
+      <span>Each module switch shows its current state and the action it will perform.</span>
+    </div>
+
+    <section class="debug-panel" id="debug-panel" aria-labelledby="debug-title">
+      <div class="block-heading">
+        <div>
+          <p class="rack-index">DIAGNOSTICS</p>
+          <h2 id="debug-title">Runtime status</h2>
+        </div>
+      </div>
+      <dl class="debug-values">
+        <div><dt>Sample rate</dt><dd id="debug-sample-rate">—</dd></div>
+        <div><dt>WebAudio block size</dt><dd id="debug-block-size">128 samples</dd></div>
+        <div><dt>Independent Cmajor modules</dt><dd id="debug-modules-loaded">0 / 7</dd></div>
+        <div><dt>AEC playback bus</dt><dd id="debug-aec-reference">Disconnected</dd></div>
+        <div><dt>DSP chain</dt><dd>7 standalone patches</dd></div>
+      </dl>
+      <div class="runtime-log">
+        <h3>Recent runtime messages</h3>
+        <ol id="runtime-messages" aria-live="polite">
+          <li>Waiting for the engine to start.</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>SeaMic <span aria-hidden="true">·</span> DSP test console</span>
+    <span>Input → DSP modules → Output</span>
+  </footer>
+</body>
+</html>
