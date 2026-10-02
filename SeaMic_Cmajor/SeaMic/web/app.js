@@ -7,8 +7,9 @@ const recordAudioButton = document.querySelector("#record-audio");
 const finishRecordingButton = document.querySelector("#finish-recording");
 const wavFileInput = document.querySelector("#wav-file");
 const downloadRecordingButton = document.querySelector("#download-recording");
-const clipSourceSelect = document.querySelector("#clip-source");
-const clipPlaybackRouteSelect = document.querySelector("#clip-playback-route");
+// The Test audio and Playback route selectors were removed from the UI.
+// Test playback always feeds the DSP mic input; the active clip source is tracked here.
+let selectedClipSource = "";
 const playClipOnceButton = document.querySelector("#play-clip-once");
 const loopClipButton = document.querySelector("#loop-clip");
 const stopClipButton = document.querySelector("#stop-clip");
@@ -72,7 +73,7 @@ const moduleSpecs = [
     workletName: "seamic-aec-worklet",
     bypassEndpoints: ["bypassAec", "bypassDcFilters"],
     fixedBypasses: { bypassDcFilters: 1 },
-    guiTarget: "#patch-gui-aec",
+    // No guiTarget: the AEC node is a skeleton until the module is rebuilt.
     parameters: [
       { endpoint: "filterLength", label: "Filter length", min: 32, max: 1024, step: 32, value: 512, unit: "taps", precision: 0 },
       { endpoint: "stepSize", label: "Adaptation step size", min: 0.01, max: 2, step: 0.01, value: 0.5, precision: 2 },
@@ -100,7 +101,7 @@ const moduleSpecs = [
     workletName: "seamic-vad-gate-worklet",
     bypassEndpoints: ["bypassVad", "bypassGate"],
     soloBypasses: { bypassVad: 0, bypassGate: 1 },
-    guiTarget: "#patch-gui-vad",
+    // No guiTarget: the Noise Gate / VAD node is a skeleton until the module is rebuilt.
     parameters: [
       { endpoint: "gateDepthDb", label: "Gate depth", min: 0, max: 60, step: 1, value: 30, unit: "dB", precision: 0 },
       { endpoint: "gateHoldMs", label: "Gate hold after speech", min: 0, max: 1000, step: 25, value: 150, unit: "ms", precision: 0 },
@@ -643,8 +644,6 @@ function updateAudioTestControls() {
   wavFileInput.disabled = !engineActive || isRecording || isPlaying;
   const clip = getSelectedClip();
   const clipAvailable = Boolean(clip?.buffer);
-  clipSourceSelect.disabled = isRecording || (!recordedAudioBuffer && !testAudioBuffer);
-  clipPlaybackRouteSelect.disabled = !engineActive || !clip?.buffer || isRecording || isPlaying;
   playClipOnceButton.disabled = !engineActive || !clipAvailable || isRecording || isPlaying;
   loopClipButton.disabled = !engineActive || !clipAvailable || isRecording || isPlaying;
   stopClipButton.disabled = !isPlaying;
@@ -697,7 +696,7 @@ function playTestBuffer(buffer, label, loop) {
   }
   const source = audioContext.createBufferSource();
   source.buffer = buffer;
-  const playsAsAecReference = clipPlaybackRouteSelect.value === "aec-reference";
+  const playsAsAecReference = false; // The playback-route selector was removed; test audio always feeds the DSP mic input.
   if (playsAsAecReference) {
     disconnectTestPlaybackReference = connectPlaybackSource(source);
   } else {
@@ -759,44 +758,47 @@ function playTestBuffer(buffer, label, loop) {
 }
 
 function getSelectedClip() {
-  if (clipSourceSelect.value === "recording") {
+  if (selectedClipSource === "recording" && recordedAudioBuffer) {
     return { buffer: recordedAudioBuffer, label: "microphone recording", type: "recording" };
   }
-  if (clipSourceSelect.value === "wav") {
+  if (selectedClipSource === "wav" && testAudioBuffer) {
+    return { buffer: testAudioBuffer, label: testAudioLabel || "test WAV", type: "wav" };
+  }
+  // No explicit preference (or it expired): fall back to whichever clip exists.
+  if (recordedAudioBuffer) {
+    return { buffer: recordedAudioBuffer, label: "microphone recording", type: "recording" };
+  }
+  if (testAudioBuffer) {
     return { buffer: testAudioBuffer, label: testAudioLabel || "test WAV", type: "wav" };
   }
   return null;
 }
 
 function refreshClipSelector(preferredSource) {
-  const previous = preferredSource || clipSourceSelect.value;
-  const options = [];
-  if (recordedAudioBuffer) {
-    options.push({ value: "recording", label: `Microphone recording (${recordedAudioBuffer.duration.toFixed(2)} s)` });
+  if (preferredSource) {
+    selectedClipSource = preferredSource;
   }
-  if (testAudioBuffer) {
-    options.push({ value: "wav", label: `${testAudioLabel} (${testAudioBuffer.duration.toFixed(2)} s)` });
+
+  if (selectedClipSource === "recording" && !recordedAudioBuffer) {
+    selectedClipSource = testAudioBuffer ? "wav" : "";
+  } else if (selectedClipSource === "wav" && !testAudioBuffer) {
+    selectedClipSource = recordedAudioBuffer ? "recording" : "";
   }
-  clipSourceSelect.replaceChildren();
-  for (const option of options) {
-    const element = document.createElement("option");
-    element.value = option.value;
-    element.textContent = option.label;
-    clipSourceSelect.appendChild(element);
-  }
-  clipSourceSelect.value = options.some(({ value }) => value === previous)
-    ? previous
-    : options[0]?.value || "";
+
+  updateClipPlaybackLabels();
   updateAudioTestControls();
 }
 
 function updateClipPlaybackLabels() {
-  const referenceRoute = clipPlaybackRouteSelect.value === "aec-reference";
-  playClipOnceButton.textContent = referenceRoute
-    ? "▶ Play once to speakers + AEC"
+  const clip = getSelectedClip();
+  const sourceName = clip
+    ? `${clip.type === "recording" ? "recording" : "WAV"} · ${clip.buffer.duration.toFixed(2)} s`
+    : "";
+  playClipOnceButton.textContent = clip
+    ? `▶ Play once to mic input (${sourceName})`
     : "▶ Play once to mic input";
-  loopClipButton.textContent = referenceRoute
-    ? "↻ Loop as AEC reference"
+  loopClipButton.textContent = clip
+    ? `↻ Loop to mic input (${sourceName})`
     : "↻ Loop to mic input";
 }
 
@@ -931,7 +933,12 @@ function formatParameterValue(parameter, value) {
 }
 
 function renderModuleControls(connection, spec) {
-  const target = document.querySelector(spec.guiTarget);
+  const target = spec.guiTarget ? document.querySelector(spec.guiTarget) : null;
+
+  if (!target) {
+    return;
+  }
+
   const heading = document.createElement("h3");
   heading.className = "parameter-heading";
   heading.textContent = "Real-time parameters";
@@ -1057,7 +1064,8 @@ function getModuleBypasses(spec) {
     ...Object.fromEntries(spec.bypassEndpoints.map((id) => [id, 1])),
     ...fixedBypasses
   };
-  if (spec.id === "aec" && !hasPlaybackReference()) {
+  if (spec.id === "aec" || spec.id === "vad") {
+    // Both modules are marked "POR REHACER": keep them bypassed until they are rebuilt.
     return allBypassed;
   }
 
@@ -1163,14 +1171,13 @@ function updateSoloControls() {
 
 function updateAecReferenceStatus() {
   const status = document.querySelector("#aec-reference-state");
-  if (!status) {
-    return;
-  }
 
-  status.textContent = hasPlaybackReference()
-    ? `LIVE PLAYBACK CONNECTED · ${playbackSources.size} SOURCE${playbackSources.size === 1 ? "" : "S"}`
-    : "NO PLAYBACK SOURCE · AEC BYPASSED";
-  status.dataset.state = hasPlaybackReference() ? "connected" : "disconnected";
+  if (status) {
+    status.textContent = hasPlaybackReference()
+      ? `LIVE PLAYBACK CONNECTED · ${playbackSources.size} SOURCE${playbackSources.size === 1 ? "" : "S"}`
+      : "NO PLAYBACK SOURCE · AEC BYPASSED";
+    status.dataset.state = hasPlaybackReference() ? "connected" : "disconnected";
+  }
   const aecProcessingActive = soloModuleId === "aec" || (isChainActive && moduleActive.aec);
   aecReferenceOutput.textContent = hasPlaybackReference()
     ? `Connected (${playbackSources.size} source${playbackSources.size === 1 ? "" : "s"}) · ${aecProcessingActive ? "AEC active" : "AEC ready"}`
@@ -1230,7 +1237,14 @@ function updateMeter(analyser, meter, readout, data) {
     ? Math.max(-60, Math.min(0, peakDbfs))
     : -60;
   const fill = meter.querySelector("span");
-  fill.style.width = `${((displayedDbfs + 60) / 60) * 100}%`;
+  const percentage = `${((displayedDbfs + 60) / 60) * 100}%`;
+
+  if (meter.dataset.orientation === "vertical") {
+    fill.style.height = percentage;
+    fill.style.width = "";
+  } else {
+    fill.style.width = percentage;
+  }
   meter.setAttribute("aria-valuenow", displayedDbfs.toFixed(1));
   meter.classList.toggle("is-clipping", peakDbfs >= 0);
   readout.textContent = Number.isFinite(peakDbfs)
@@ -1276,18 +1290,32 @@ function drawWaveform(canvas, history, colorToken) {
 
   context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   context.clearRect(0, 0, width, height);
-  const centerY = height / 2;
+  const vertical = canvas.dataset.orientation === "vertical";
   context.strokeStyle = getComputedStyle(document.documentElement)
     .getPropertyValue("--ad-border-lo")
     .trim();
   context.lineWidth = 1;
   context.beginPath();
-  context.moveTo(0, centerY);
-  context.lineTo(width, centerY);
-  context.moveTo(0, height * 0.15);
-  context.lineTo(width, height * 0.15);
-  context.moveTo(0, height * 0.85);
-  context.lineTo(width, height * 0.85);
+
+  if (vertical) {
+    // Time flows from top (oldest) to bottom (newest); amplitude spans the width.
+    const centerX = width / 2;
+    context.moveTo(centerX, 0);
+    context.lineTo(centerX, height);
+    context.moveTo(width * 0.15, 0);
+    context.lineTo(width * 0.15, height);
+    context.moveTo(width * 0.85, 0);
+    context.lineTo(width * 0.85, height);
+  } else {
+    const centerY = height / 2;
+    context.moveTo(0, centerY);
+    context.lineTo(width, centerY);
+    context.moveTo(0, height * 0.15);
+    context.lineTo(width, height * 0.15);
+    context.moveTo(0, height * 0.85);
+    context.lineTo(width, height * 0.85);
+  }
+
   context.stroke();
 
   context.strokeStyle = getComputedStyle(document.documentElement)
@@ -1296,11 +1324,20 @@ function drawWaveform(canvas, history, colorToken) {
   context.lineWidth = 1.5;
   context.beginPath();
   history.forEach(({ minimum, maximum }, index) => {
-    const x = ((index + 0.5) / waveformBucketCount) * width;
-    const top = centerY - Math.max(-1, Math.min(1, maximum)) * centerY;
-    const bottom = centerY - Math.max(-1, Math.min(1, minimum)) * centerY;
-    context.moveTo(x, top);
-    context.lineTo(x, bottom);
+    if (vertical) {
+      const y = ((index + 0.5) / waveformBucketCount) * height;
+      const left = width / 2 + Math.max(-1, Math.min(1, minimum)) * (width / 2);
+      const right = width / 2 + Math.max(-1, Math.min(1, maximum)) * (width / 2);
+      context.moveTo(left, y);
+      context.lineTo(right, y);
+    } else {
+      const centerY = height / 2;
+      const x = ((index + 0.5) / waveformBucketCount) * width;
+      const top = centerY - Math.max(-1, Math.min(1, maximum)) * centerY;
+      const bottom = centerY - Math.max(-1, Math.min(1, minimum)) * centerY;
+      context.moveTo(x, top);
+      context.lineTo(x, bottom);
+    }
   });
   context.stroke();
 }
@@ -1343,7 +1380,7 @@ function setChainBypassed(isBypassed) {
   isChainActive = !isBypassed;
   if (isChainActive) {
     for (const spec of moduleSpecs) {
-      moduleActive[spec.id] = spec.id !== "aec" || hasPlaybackReference();
+      moduleActive[spec.id] = spec.id !== "aec" && spec.id !== "vad";
     }
   }
   soloModuleId = null;
@@ -1630,7 +1667,8 @@ async function stopAudio(showStatus) {
   drawWaveform(inputWaveform, inputWaveformHistory, "--dat-cat-1");
   drawWaveform(outputWaveform, outputWaveformHistory, "--dat-cat-3");
   microphoneMeter.querySelector("span").style.width = "0";
-  outputMeter.querySelector("span").style.width = "0";
+  outputMeter.querySelector("span").style.height = "0";
+  outputMeter.querySelector("span").style.width = "";
   microphoneMeter.setAttribute("aria-valuenow", "-60");
   outputMeter.setAttribute("aria-valuenow", "-60");
   microphoneLevelReadout.textContent = "— dBFS";
@@ -1719,8 +1757,6 @@ finishRecordingButton.addEventListener("click", async () => {
     reportAudioTestError("Could not finish microphone recording", error);
   }
 });
-clipSourceSelect.addEventListener("change", () => refreshClipSelector(clipSourceSelect.value));
-clipPlaybackRouteSelect.addEventListener("change", updateClipPlaybackLabels);
 playClipOnceButton.addEventListener("click", () => {
   try {
     const clip = getSelectedClip();

@@ -19,6 +19,33 @@
   </header>
 
   <main>
+    <aside class="output-rail" aria-label="Output monitor">
+      <section class="rack-block output-block" aria-labelledby="output-title">
+        <div class="block-heading">
+          <p class="rack-index">OUTPUT 01</p>
+          <span class="block-state" id="output-state">STANDBY</span>
+        </div>
+        <h2 id="output-title">Output monitor</h2>
+        <p class="strip-description">Output to the browser-selected device.</p>
+        <div class="meter-readout" id="output-level-readout">— dBFS</div>
+        <div class="output-visuals">
+          <div class="waveform-scale is-vertical" aria-hidden="true"><span>−5 s</span><span>−2.5 s</span><span>Now</span></div>
+          <canvas class="waveform-display output-waveform" id="output-waveform" data-orientation="vertical" role="img" aria-label="Output waveform, last five seconds; time flows from top to bottom"></canvas>
+          <div class="level-meter output-meter" data-orientation="vertical" role="meter" aria-label="Output peak" aria-valuemin="-60" aria-valuemax="0" aria-valuenow="-60">
+            <span></span>
+          </div>
+          <div class="meter-scale is-vertical" aria-hidden="true"><span>0</span><span>-20</span><span>-40</span><span>-60 dBFS</span></div>
+        </div>
+        <div class="motor-controls chain-master-controls">
+          <button class="bypass-button" id="chain-toggle" type="button" aria-pressed="false" disabled>
+            Activate entire DSP chain
+          </button>
+          <span>Each module switch shows its current state and the action it will perform.</span>
+        </div>
+      </section>
+    </aside>
+
+    <div class="main-column">
     <section class="console" aria-label="SeaMic audio console">
       <section class="rack-block motor-block" aria-labelledby="motor-title">
         <div class="block-heading">
@@ -45,69 +72,16 @@
           <button class="player-button" id="enable-input-devices" type="button">Allow access &amp; show device names</button>
           <p id="input-device-status" role="status" aria-live="polite">Select a microphone before starting the engine. Device names may require microphone permission.</p>
         </section>
-        <section class="preset-controls" aria-labelledby="preset-title">
-          <div>
-            <p class="rack-index">MICROPHONE PRESETS</p>
-            <h2 id="preset-title">DSP profiles</h2>
-          </div>
-          <label for="preset-select">Profile</label>
-          <select id="preset-select" aria-label="Select a DSP profile"></select>
-          <button class="player-button button-primary" id="apply-preset" type="button">Apply profile</button>
-          <button class="player-button" id="save-preset" type="button">Save current settings as preset</button>
-          <button class="player-button button-secondary" id="delete-preset" type="button" disabled>Delete saved preset</button>
-          <p id="preset-status" role="status" aria-live="polite">Presets change exposed DSP parameters only. Modules remain bypassed until activated.</p>
-        </section>
-        <section class="audio-test" aria-labelledby="audio-test-title">
-          <div class="block-heading">
-            <div>
-              <p class="rack-index">CHAIN TEST INPUT</p>
-              <h2 id="audio-test-title">Record or load test audio</h2>
-            </div>
-            <span class="block-state" id="audio-test-state">MICROPHONE INPUT</span>
-          </div>
-          <p class="strip-description">
-            Record microphone input or load a WAV file, then play it once or loop it through the DSP mic input.
-          </p>
-          <div class="audio-test-controls">
-            <button class="player-button" id="record-audio" type="button" disabled>● Record microphone</button>
-            <button class="player-button" id="finish-recording" type="button" disabled>■ Finish recording</button>
-            <label class="file-picker">
-              Load mic/test WAV
-              <input id="wav-file" type="file" accept=".wav,.wave,audio/wav,audio/x-wav" disabled>
-            </label>
-            <button class="player-button" id="download-recording" type="button" disabled>Save recording as WAV</button>
-          </div>
-          <div class="clip-playback" aria-label="Recording and test clip playback">
-            <label for="clip-source">Test audio</label>
-            <select id="clip-source" disabled>
-              <option value="">No clip loaded</option>
-            </select>
-            <label for="clip-playback-route">Playback route</label>
-            <select id="clip-playback-route" aria-label="Test audio playback route">
-              <option value="mic">DSP microphone input</option>
-              <option value="aec-reference">Speakers + AEC reference</option>
-            </select>
-            <button class="player-button button-primary" id="play-clip-once" type="button" disabled>▶ Play once to mic input</button>
-            <button class="player-button" id="loop-clip" type="button" disabled>↻ Loop selected route</button>
-            <button class="player-button button-secondary" id="stop-clip" type="button" disabled>■ Stop clip</button>
-          </div>
-          <p class="audio-test-status" id="audio-test-status" role="status" aria-live="polite">Start the engine to record or play test audio.</p>
-          <div class="aec-diagnostics" aria-label="AEC live signal diagnostics">
-            <strong>AEC signal levels</strong>
-            <span>Mic input <output id="aec-mic-level">— dBFS</output></span>
-            <span>Far-end reference <output id="aec-ref-level">— dBFS</output></span>
-            <span>AEC output <output id="aec-out-level">— dBFS</output></span>
-            <span>Mic-to-output level change <output id="aec-level-change">— dB</output></span>
-            <p id="aec-diagnostic-note">Connect a far-end playback source; AEC remains bypassed until one is present. Level change is not a true ERLE measurement.</p>
-          </div>
-        </section>
+
       </section>
 
       <p class="audio-warning">
         Every DSP module starts bypassed. Use the per-module controls or activate the full chain.
         Parameter sliders send changes to Cmajor immediately, even while a module is bypassed;
-        activate that module to hear the result. To test AEC, select “Speakers + AEC reference”
-        for test audio; its acoustic echo must reach the microphone. Use headphones.
+        activate that module to hear the result. AEC and Noise Gate / VAD are marked
+        “POR REHACER” and stay bypassed while they are rebuilt. To exercise AEC, connect the
+        application playback with SeaMicAudio.connectPlaybackSource(node) so its echo reaches
+        the microphone. Use headphones.
       </p>
 
       <div class="rack-arrow" aria-hidden="true">▼</div>
@@ -143,6 +117,7 @@
       <ul class="signal-legend" aria-label="Implementation legend">
         <li><span class="status-mark status-implemented"></span> Implemented</li>
         <li><span class="status-mark status-bypassed"></span> Implemented · bypassed</li>
+        <li><span class="status-mark status-rebuild"></span> Under rework · skeleton kept</li>
         <li><span class="status-mark status-pending"></span> Pending / target architecture</li>
       </ul>
       <ol class="signal-chain" aria-label="Target chain: ADC, seven DSP modules, output, Opus encoder, and network">
@@ -174,23 +149,13 @@ out &lt;- isBypassed ? sample : filtered;</code></pre>
           </details>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
-        <li class="signal-node" data-status="bypassed" data-solo="aec">
+        <li class="signal-node" data-status="rebuild" data-solo="aec">
           <span class="signal-node-type">DSP MODULE 02</span>
           <strong>AEC</strong>
           <span class="signal-node-detail">Real-time NLMS echo cancellation using the application playback bus.</span>
-          <span class="signal-stage-status">Implemented · awaiting playback reference</span>
-          <span class="module-state" data-state="bypassed">BYPASSED · AWAITING REFERENCE</span>
-          <aside class="signal-reference" aria-label="AEC reference status">
-            <span aria-hidden="true">◀</span>
-            <span>
-              <strong id="aec-reference-state">NO PLAYBACK SOURCE · AEC BYPASSED</strong><br>
-              Select “Speakers + AEC reference” for test audio, or connect SeaTime playback with
-              <code>SeaMicAudio.connectPlaybackSource(node)</code>. AEC also needs the playback echo in the microphone.
-            </span>
-          </aside>
-          <button class="module-toggle" type="button" data-module="aec" aria-pressed="false" disabled>Waiting for reference</button>
-          <button class="solo-button" type="button" data-solo="aec" aria-pressed="false" disabled>Waiting for reference</button>
-          <div class="patch-gui" id="patch-gui-aec" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
+          <span class="signal-stage-status">Under rework · skeleton kept for the rebuild</span>
+          <span class="module-state" data-state="rebuild">POR REHACER</span>
+          <div class="patch-gui" id="patch-gui-aec" aria-live="polite">Module under rework — the controls will be rebuilt from scratch.</div>
           <details class="module-info">
             <summary>Implementation and Cmajor</summary>
             <p>The adaptive filter estimates echo from the live pre-output playback reference and subtracts that estimate from the microphone. Adaptation pauses during detected double-talk. The default filter has 512 taps; at 16 kHz that covers 32 ms, with less time coverage at higher sample rates.</p>
@@ -242,18 +207,16 @@ out &lt;- sample * gainEnvelope;</code></pre>
           </details>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
-        <li class="signal-node" data-status="bypassed" data-solo="vad">
+        <li class="signal-node" data-status="rebuild" data-solo="vad">
           <span class="signal-node-type">DSP MODULE 04</span>
           <strong>Noise Gate / VAD</strong>
           <span class="signal-node-detail">Target: Otsu + envelope follower. Current implementation: RMS, noise floor, SNR hysteresis, and soft gate.</span>
-          <span class="signal-stage-status">Starts bypassed · Otsu and envelope follower pending</span>
-          <span class="module-state" data-state="bypassed">BYPASSED</span>
-          <button class="module-toggle" type="button" data-module="vad" aria-pressed="false" disabled>Activate</button>
-          <button class="solo-button" type="button" data-solo="vad" aria-pressed="false" disabled>Solo</button>
-          <div class="patch-gui" id="patch-gui-vad" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
+          <span class="signal-stage-status">Under rework · skeleton kept for the rebuild</span>
+          <span class="module-state" data-state="rebuild">POR REHACER</span>
+          <div class="patch-gui" id="patch-gui-vad" aria-live="polite">Module under rework — the controls will be rebuilt from scratch.</div>
           <details class="module-info">
             <summary>Implementation and Cmajor</summary>
-            <p>The detector tracks a 32 ms rolling RMS level and a noise floor that can fall as the environment gets quieter. It opens above the SNR enter threshold (9 dB default) and begins its close timer below the SNR exit threshold (4 dB default) or when the input is extremely quiet. The close timer holds speech for the VAD hangover (400 ms default); the gate then adds its hold (150 ms default) before fading down over 30 ms to the gate depth (30 dB default). Gate depth, gate hold, hangover, and both SNR thresholds are adjustable in real time above. Otsu classification is not implemented. In Solo, audio passes unchanged while the detector is tested.</p>
+            <p>The detector tracks a 32 ms rolling RMS level and a noise floor that can fall as the environment gets quieter. It opens above the SNR enter threshold (9 dB default) and begins its close timer below the SNR exit threshold (4 dB default) or when the input is extremely quiet. The close timer holds speech for the VAD hangover (400 ms default); the gate then adds its hold (150 ms default) before fading down over 30 ms to the gate depth (30 dB default). Gate depth, gate hold, hangover, and both SNR thresholds were configurable in real time in the previous UI. Otsu classification is not implemented. In Solo, audio passes unchanged while the detector is tested.</p>
             <pre><code>sumSq = max (0.0f, sumSq - oldest * oldest + x * x);
 float rms = sqrt (sumSq / float (filled));
 float snrDb = 20.0f * log10 (rms / noiseFloor);
@@ -379,31 +342,6 @@ out &lt;- isBypassed ? x
       </ol>
     </section>
 
-    <div class="rack-arrow" aria-hidden="true">▼</div>
-
-    <section class="rack-block output-block" aria-labelledby="output-title">
-      <div class="block-heading">
-        <p class="rack-index">OUTPUT 01</p>
-        <span class="block-state" id="output-state">STANDBY</span>
-      </div>
-      <h2 id="output-title">Output monitor</h2>
-      <p class="strip-description">Output to the device selected by the browser.</p>
-      <div class="meter-readout" id="output-level-readout">— dBFS</div>
-      <canvas class="waveform-display output-waveform" id="output-waveform" role="img" aria-label="Output waveform, last five seconds"></canvas>
-      <div class="waveform-scale" aria-hidden="true"><span>−5 s</span><span>−2.5 s</span><span>Now</span></div>
-      <div class="level-meter output-meter" role="meter" aria-label="Output peak" aria-valuemin="-60" aria-valuemax="0" aria-valuenow="-60">
-        <span></span>
-      </div>
-      <div class="meter-scale" aria-hidden="true"><span>-60</span><span>-40</span><span>-20</span><span>0 dBFS</span></div>
-    </section>
-
-    <div class="motor-controls chain-master-controls">
-      <button class="bypass-button" id="chain-toggle" type="button" aria-pressed="false" disabled>
-        Activate entire DSP chain
-      </button>
-      <span>Each module switch shows its current state and the action it will perform.</span>
-    </div>
-
     <section class="debug-panel" id="debug-panel" aria-labelledby="debug-title">
       <div class="block-heading">
         <div>
@@ -425,6 +363,66 @@ out &lt;- isBypassed ? x
         </ol>
       </div>
     </section>
+
+    <div class="rack-arrow" aria-hidden="true">▼</div>
+
+    <section class="rack-block bottom-panel preset-controls" aria-labelledby="preset-title">
+      <div>
+        <p class="rack-index">MICROPHONE PRESETS</p>
+        <h2 id="preset-title">DSP profiles</h2>
+      </div>
+      <label for="preset-select">Profile</label>
+      <select id="preset-select" aria-label="Select a DSP profile"></select>
+      <button class="player-button button-primary" id="apply-preset" type="button">Apply profile</button>
+      <button class="player-button" id="save-preset" type="button">Save current settings as preset</button>
+      <button class="player-button button-secondary" id="delete-preset" type="button" disabled>Delete saved preset</button>
+      <p id="preset-status" role="status" aria-live="polite">Presets change exposed DSP parameters only. Modules remain bypassed until activated.</p>
+    </section>
+
+    <section class="rack-block bottom-panel audio-test" aria-labelledby="audio-test-title">
+      <div class="block-heading">
+        <div>
+          <p class="rack-index">CHAIN TEST INPUT</p>
+          <h2 id="audio-test-title">Record or load test audio</h2>
+        </div>
+        <span class="block-state" id="audio-test-state">MICROPHONE INPUT</span>
+      </div>
+      <p class="strip-description">
+        Record microphone input or load a WAV file, then play it once or loop it through the DSP mic input.
+      </p>
+      <div class="audio-test-controls">
+        <button class="player-button" id="record-audio" type="button" disabled>● Record microphone</button>
+        <button class="player-button" id="finish-recording" type="button" disabled>■ Finish recording</button>
+        <label class="file-picker">
+          Load mic/test WAV
+          <input id="wav-file" type="file" accept=".wav,.wave,audio/wav,audio/x-wav" disabled>
+        </label>
+        <button class="player-button" id="download-recording" type="button" disabled>Save recording as WAV</button>
+      </div>
+      <div class="clip-playback" aria-label="Recording and test clip playback">
+        <button class="player-button button-primary" id="play-clip-once" type="button" disabled>▶ Play once to mic input</button>
+        <button class="player-button" id="loop-clip" type="button" disabled>↻ Loop to mic input</button>
+        <button class="player-button button-secondary" id="stop-clip" type="button" disabled>■ Stop clip</button>
+      </div>
+      <p class="audio-test-status" id="audio-test-status" role="status" aria-live="polite">Start the engine to record or play test audio.</p>
+    </section>
+
+    <section class="rack-block bottom-panel" aria-labelledby="aec-levels-title">
+      <div class="block-heading">
+        <div>
+          <p class="rack-index">AEC DIAGNOSTICS</p>
+          <h2 id="aec-levels-title">AEC signal levels</h2>
+        </div>
+      </div>
+      <div class="aec-diagnostics" aria-label="AEC live signal diagnostics">
+        <span>Mic input <output id="aec-mic-level">— dBFS</output></span>
+        <span>Far-end reference <output id="aec-ref-level">— dBFS</output></span>
+        <span>AEC output <output id="aec-out-level">— dBFS</output></span>
+        <span>Mic-to-output level change <output id="aec-level-change">— dB</output></span>
+        <p id="aec-diagnostic-note">Connect a far-end playback source; AEC remains bypassed until one is present. Level change is not a true ERLE measurement.</p>
+      </div>
+    </section>
+    </div>
   </main>
 
   <footer class="site-footer">
