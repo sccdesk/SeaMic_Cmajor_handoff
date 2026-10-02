@@ -2,8 +2,6 @@
 
 Internal console for monitoring the microphone dry and testing the Cmajor DSP chain. The target architecture is **ADC → DC Offset Removal → AEC → De-Reverb → Noise Gate / VAD → Loudness Normalisation → Tone / Warmth → Look-Ahead Limiter → Output → Opus → Network**.
 
-See [the chronological engineering report](../docs/SeaMic_Project_Chronological_Report.pdf) for the project history, implementation decisions, debugging findings and validation record.
-
 The browser now loads seven independent Cmajor module patches in series:
 
 1. `SeaMicDCOffset`
