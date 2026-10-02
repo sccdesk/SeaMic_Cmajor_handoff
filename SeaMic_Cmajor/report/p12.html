@@ -1,0 +1,53 @@
+<div class="mistake">
+<b class="tag">M5 — The 2-second boot gate silenced every decision</b>
+<b>Symptom.</b> An enter-only probe (floor + SNR + enter latch, nothing else) rendered complete
+silence for the whole 7&nbsp;s file, even though hand-calculation said SNR ≫ threshold during the
+loud segment. Removing a single guard — <code>if (initSamp &gt;= initLen)</code> with
+<code>initLen = 2&nbsp;s</code> wrapping the enter decision — made the probe sing on the next render.<br>
+<b>Root cause.</b> Layered bookkeeping: the sample counter incremented inside a branch that other
+logic (rotation) also gated; a decision freeze that outlived its usefulness once the floor boot was
+shortened; and a gate depending on per-sample counters across block-based rendering is an extra
+failure surface for zero benefit once the floor starts at a sane cap.<br>
+<b>Fix.</b> Floor boot kept but shortened to 0.25&nbsp;s (instant-min converges within one 32&nbsp;ms
+window); <b>all decision gating removed</b> — enter runs from sample 0, safe because the cap-booted
+floor (M3) guarantees SNR ≤ 0&nbsp;dB on boot noise.<br>
+<b>Verification.</b> Enter-probe and flag-beep probes both open during speech segments (seg2/4/5 at
+full beep level −9.03&nbsp;dBFS).
+</div>
+
+<div class="mistake">
+<b class="tag">M6 — Gate/AGC interlock: pre-roll pump and post-speech noise pumping</b>
+<b>Symptom.</b> (a) With the gate initial <i>open</i> and the AGC free to adapt before any speech,
+the chain amplified the quiet opening seconds. (b) After speech, a lingering VAD kept the AGC
+"unfrozen" into the following noise, which it dutifully rode toward the −19&nbsp;dBFS target — noise
+pumping, the exact artefact the product wanted to eliminate. (c) The legacy 1&nbsp;s shutoff
+hysteresis (pre-project) broadcast noise tails for a full second.<br>
+<b>Fix.</b> Three coordinated changes: gate <b>starts closed</b> (att = 10&nbsp;dB), opening only on
+first detection; the AGC gains a <code>speechSeen</code> latch (no adaptation before the first
+utterance); VAD hardening (flatness exit + cap-booted floor) stops the flag lingering on stationary
+noise — while the <i>requested</i> long hold was implemented where it belongs: as audio-tail hold
+(+400&nbsp;ms) rather than as AGC-adaptation time.<br>
+<b>Verification.</b> Final renders: opening noise silent (−120&nbsp;dBFS measured), post-speech noise
+suppressed relative to input; documented residual leak ≈ 1&nbsp;s (§7).
+</div>
+
+<div class="mistake">
+<b class="tag">M7 — The analyzer read float32 WAVs as int16 (measurement invalidated a full round of conclusions)</b>
+<b>Symptom.</b> Probe numbers were internally contradictory: a "lower-only" floor appeared to
+<i>rise</i>; an unconditional pass-probe was black for one second; the K-weighted output appeared
+input-independent at ≈ −41&nbsp;dBFS; peaks pinned at exactly 1.000000 across unrelated patches.<br>
+<b>Probe → root cause.</b> The bisect reached the instruments themselves. Dumping the rendered file
+header (<code>dumpwav</code>) revealed <code>fmt = 0xFFFE</code> (WAVE_FORMAT_EXTENSIBLE),
+<b>32-bit float, stereo</b>, while stimulus files were fmt&nbsp;=&nbsp;1, 16-bit PCM. The analyzer
+chose its decoder by testing for format&nbsp;3 (IEEE_FLOAT) — so every float32 sample was parsed as
+<i>two int16 samples</i> (low mantissa word first), producing structured nonsense that correlated
+with signal magnitude just enough to look plausible.<br>
+<b>Fix.</b> Decode by <code>bits</code>: 16&nbsp;→&nbsp;int16, otherwise float32.<br>
+<b>Consequence.</b> All historical measurements were re-run and the verdict flipped: with fixed
+instrumentation the VAD <b>was largely working</b> — flag-beep open through speech, partial during
+hold windows (§7). Two earlier "root causes" were partly artifacts; the report keeps only the
+independently evidenced core of M3 (phantom SNR from the independent <code>vadprobe</code> tool).
+<div class="lesson" style="margin-top:6px"><b class="tag">Lesson</b>Instrumentation is part of the
+system under test. When a measurement contradicts the code's own invariants (a lower-only floor
+rising), suspect the measurement before the model.</div>
+</div>

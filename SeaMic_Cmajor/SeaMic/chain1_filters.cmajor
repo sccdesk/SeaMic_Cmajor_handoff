@@ -1,0 +1,114 @@
+// SeaTime SeaMicChain — 16kHz mono mic chain. Part 1/4: DCBlock + KWeight.
+processor DCBlock
+{
+    input  stream float in;
+    output stream float out;
+    float x1 = 0.0f;
+    float y1 = 0.0f;
+    void main()
+    {
+        float R = 1.0f - float (float (twoPi) * 20.0f / float (processor.frequency));
+        if (R > 0.9995f)
+            R = 0.9995f;
+        if (R < 0.9f)
+            R = 0.9f;
+        loop
+        {
+            float x = in;
+            float y = x - x1 + R * y1;
+            x1 = x;
+            y1 = y;
+            out <- y;
+            advance();
+        }
+    }
+}
+
+processor KWeight
+{
+    input  stream float in;
+    output stream float out;
+    input event float32 bypassKWeight [[ name: "Bypassed (ON = dry signal)", init: 1, boolean ]];
+    float sh_x1 = 0.0f;
+    float sh_x2 = 0.0f;
+    float sh_y1 = 0.0f;
+    float sh_y2 = 0.0f;
+    float hp_x1 = 0.0f;
+    float hp_x2 = 0.0f;
+    float hp_y1 = 0.0f;
+    float hp_y2 = 0.0f;
+    float sh_b0 = 1.0f;
+    float sh_b1 = 0.0f;
+    float sh_b2 = 0.0f;
+    float sh_a1 = 0.0f;
+    float sh_a2 = 0.0f;
+    float hp_b0 = 1.0f;
+    float hp_b1 = 0.0f;
+    float hp_b2 = 0.0f;
+    float hp_a1 = 0.0f;
+    float hp_a2 = 0.0f;
+    int coeffsDone = 0;
+    bool isBypassed = true;
+
+    event bypassKWeight (float32 value)
+    {
+        isBypassed = value > 0.5f;
+    }
+
+    void computeCoeffs()
+    {
+        float fs = float (processor.frequency);
+        float A = pow (10.0f, 3.985419f / 40.0f);
+        float w0 = float (float (twoPi) * 1681.974f / fs);
+        float alphaShelf = float (sin (w0) * 0.5f * sqrt ((A + 1.0f / A) * (1.0f / 0.7071f - 1.0f) + 2.0f));
+        float cosw = cos (w0);
+        float sqA = sqrt (A);
+        float b0s = A * ((A + 1.0f) + (A - 1.0f) * cosw + 2.0f * sqA * alphaShelf);
+        float b1s = -2.0f * A * ((A - 1.0f) + (A + 1.0f) * cosw);
+        float b2s = A * ((A + 1.0f) + (A - 1.0f) * cosw - 2.0f * sqA * alphaShelf);
+        float a0s = (A + 1.0f) - (A - 1.0f) * cosw + 2.0f * sqA * alphaShelf;
+        float a1s = 2.0f * ((A - 1.0f) - (A + 1.0f) * cosw);
+        float a2s = (A + 1.0f) - (A - 1.0f) * cosw - 2.0f * sqA * alphaShelf;
+        sh_b0 = b0s / a0s;
+        sh_b1 = b1s / a0s;
+        sh_b2 = b2s / a0s;
+        sh_a1 = a1s / a0s;
+        sh_a2 = a2s / a0s;
+        float wh = float (float (twoPi) * 60.0f / fs);
+        float alh = sin (wh);
+        float coh = cos (wh);
+        float b0h = (1.0f + coh) * 0.5f;
+        float b1h = -(1.0f + coh);
+        float b2h = (1.0f + coh) * 0.5f;
+        float a0h = 1.0f + alh;
+        float a1h = -2.0f * coh;
+        float a2h = 1.0f - alh;
+        hp_b0 = b0h / a0h;
+        hp_b1 = b1h / a0h;
+        hp_b2 = b2h / a0h;
+        hp_a1 = a1h / a0h;
+        hp_a2 = a2h / a0h;
+        coeffsDone = 1;
+    }
+    void main()
+    {
+        if (coeffsDone == 0)
+            computeCoeffs();
+        loop
+        {
+            float x = in;
+            float ys = sh_b0 * x + sh_b1 * sh_x1 + sh_b2 * sh_x2 - sh_a1 * sh_y1 - sh_a2 * sh_y2;
+            sh_x2 = sh_x1;
+            sh_x1 = x;
+            sh_y2 = sh_y1;
+            sh_y1 = ys;
+            float yh = hp_b0 * ys + hp_b1 * hp_x1 + hp_b2 * hp_x2 - hp_a1 * hp_y1 - hp_a2 * hp_y2;
+            hp_x2 = hp_x1;
+            hp_x1 = ys;
+            hp_y2 = hp_y1;
+            hp_y1 = yh;
+            out <- isBypassed ? x : yh;
+            advance();
+        }
+    }
+}

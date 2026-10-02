@@ -1,0 +1,57 @@
+<div class="titlepage">
+  <div style="font-size:11pt; letter-spacing:2px; color:#555;">END-OF-YEAR PROJECT REPORT</div>
+  <div class="rule"></div>
+  <h1>Design and Iterative Development of an Adaptive Microphone Processing Chain for SeaTime</h1>
+  <div class="subtitle">Automatic Gain Control, Voice Activity Detection and Peak Limiting<br>implemented in the Cmajor DSP language</div>
+  <div class="rule"></div>
+  <div class="meta">
+    <b>Discipline:</b> Digital Signal Processing / Audio Software Engineering<br>
+    <b>Product context:</b> SeaTime — meeting application (Xiph Opus codec, 16&nbsp;kHz speech)<br>
+    <b>Toolchain:</b> Cmajor 1.0.3209 &middot; cmaj CLI &middot; WASAPI &middot; .NET 8 test harness<br>
+    <b>Development window:</b> 29 September 2026 (single intensive iteration cycle)<br>
+    <b>Codebase:</b> C:\Users\engcouce\Documents\Cmajor\
+  </div>
+</div>
+
+<div class="abstracts">
+  <div class="abstract">
+    <h3>Abstract</h3>
+    <p>This report documents the complete engineering process — design rationale, theoretical
+    foundations, implementation errors and their diagnoses — behind a real-time microphone processing
+    chain for the SeaTime meeting application. The system replaces two manual user controls (microphone
+    gain and activation threshold) with a fully adaptive pipeline: DC removal, ITU-R BS.1770-style
+    K-weighting recomputed at 16&nbsp;kHz, a min-statistics Voice Activity Detector (VAD) with
+    hysteresis and a 600&nbsp;ms hangover, a VAD-gated Automatic Gain Control (AGC) targeting
+    &minus;19&nbsp;dBFS, a 10&nbsp;dB downward soft gate, and a 4&nbsp;ms-lookahead sample-peak
+    limiter with a &minus;1&nbsp;dBFS ceiling. The chain was prototyped in Cmajor, validated offline
+    through a synthetic 7-second stimulus rendered with <code>cmaj render</code> and measured with a
+    purpose-built segment-RMS analyzer, then verified live on WASAPI hardware at 16&nbsp;kHz.
+    The report candidly reconstructs eight significant mistakes made during development — including a
+    measurement-tool bug that invalidated an entire round of conclusions — and explains the bisect-probe
+    methodology used to isolate each one. Final results show quiet speech passing transparently,
+    loud speech normalised to &minus;14&hellip;&minus;15&nbsp;dBFS with zero samples above 0&nbsp;dBFS,
+    and background noise suppressed through the gate, at the documented cost of
+    approximately one second of post-speech leakage imposed by the deliberately long hold times.</p>
+    <p class="keywords"><b>Keywords:</b> digital signal processing, voice activity detection, automatic
+    gain control, loudness normalisation, look-ahead limiter, BS.1770, K-weighting, min-statistics,
+    Cmajor, real-time audio.</p>
+  </div>
+  <div class="abstract">
+    <h3>Resumen</h3>
+    <p>Este informe documenta el proceso completo de ingeniería — justificación del diseño, fundamentos
+    teóricos, errores de implementación y su diagnóstico — de una cadena de procesamiento de micrófono
+    en tiempo real para la aplicación de reuniones SeaTime. El sistema sustituye dos controles manuales
+    (ganancia y umbral de activación) por un pipeline adaptativo: eliminación de DC, ponderación K
+    estilo ITU-R BS.1770 recalculada a 16&nbsp;kHz, un detector de actividad de voz basado en
+    estadísticas mínimas con histéresis y retención de 600&nbsp;ms, un control automático de ganancia
+    congelado por el VAD con objetivo &minus;19&nbsp;dBFS, una compuerta suave de 10&nbsp;dB y un
+    limitador de pico con 4&nbsp;ms de anticipación y techo de &minus;1&nbsp;dBFS. La cadena se
+    prototipó en Cmajor, se validó con un estímulo sintético de 7&nbsp;segundos renderizado con
+    <code>cmaj render</code> y medido con un analizador RMS propio, y se verificó en hardware real
+    vía WASAPI a 16&nbsp;kHz. Se reconstruyen ocho errores significativos — incluido un fallo de la
+    herramienta de medida que invalidó una ronda entera de conclusiones — y la metodología de
+    bisectado empleada para aislar cada uno.</p>
+    <p class="keywords"><b>Palabras clave:</b> procesamiento de señales, detección de actividad de voz,
+    control automático de ganancia, normalización de nivel, limitador de pico, Cmajor, audio en tiempo real.</p>
+  </div>
+</div>

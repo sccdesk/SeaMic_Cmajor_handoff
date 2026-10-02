@@ -1,0 +1,68 @@
+<h2 id="appA" class="newpage">Appendix A — Repository inventory</h2>
+<table>
+<tr><th>Path</th><th>Contents</th></tr>
+<tr><td><code>Cmajor\tools\cmaj.exe</code></td><td>Cmajor CLI 1.0.3209 (from VSCode Cmajor Tools bundle)</td></tr>
+<tr><td><code>SeaMic\chain1_filters.cmajor</code></td><td>DCBlock + KWeight (runtime RBJ coefficients)</td></tr>
+<tr><td><code>SeaMic\chain2_vad.cmajor</code></td><td>VAD v2: windowed-min floor, hysteresis, hangover, flatness exit, debug wires</td></tr>
+<tr><td><code>SeaMic\chain3_agc_gate_limit.cmajor</code></td><td>AGC (speechSeen latch, asymmetric ballistics), SoftGate (start-closed, +400 ms hold), Limiter</td></tr>
+<tr><td><code>SeaMic\chain4_graph.cmajor</code> / <code>chain5_live.cmajor</code></td><td>Full graph (debug outs) / device-safe live graph</td></tr>
+<tr><td><code>SeaMic\chain6…13_*.cmajor</code></td><td>Nine bisect probes (flag-beep, SNR/level/floor/DC taps, enter-only, pass, mini)</td></tr>
+<tr><td><code>SeaMic\SeaMic*.cmajorpatch</code></td><td>Patch manifests (sources, IDs)</td></tr>
+<tr><td><code>SeaMic\mkstim\</code> / <code>anwav2\</code> / <code>dumpwav\</code> / <code>vadprobe\</code></td><td>.NET 8 tools: stimulus generator, segment-RMS analyzer (float32-aware), header dumper, SNR trace</td></tr>
+<tr><td><code>SeaMic\stimulus16k.wav</code>, <code>render_*.wav</code>, <code>analysis_*.txt</code></td><td>Raw evidence for every table in §7</td></tr>
+<tr><td><code>SeaMic\VAD_DEBUG.md</code> / <code>MIC_TEST.md</code> / <code>BUGFIXES.md</code></td><td>Engineering logs and manual test protocol</td></tr>
+<tr><td><code>report\</code></td><td>This report (HTML sources + PDF)</td></tr>
+</table>
+
+<h2 id="appB">Appendix B — Reproduction commands</h2>
+<pre># 0) Environment (already installed: VSCode Cmajor Tools → cmaj.exe copied to tools\)
+cd C:\Users\engcouce\Documents\Cmajor
+
+# 1) Compile-check all production patches (expect "Loaded:")
+.\tools\cmaj.exe play SeaMic\SeaMic.cmajorpatch      --dry-run --stop-on-error
+.\tools\cmaj.exe play SeaMic\SeaMicLive.cmajorpatch  --dry-run --stop-on-error
+
+# 2) Regenerate the 7 s stimulus
+cd SeaMic\mkstim      &amp;&amp; dotnet build -c Release   &amp;&amp; cd ..
+.\mkstim\bin\Release\net8.0\mkstim.exe stimulus16k.wav
+
+# 3) Offline render of the full chain @16 kHz
+..\tools\cmaj.exe render SeaMic.cmajorpatch --rate=16000 --blockSize=128 `
+    --input=stimulus16k.wav --output=render_final.wav
+
+# 4) Measure (segment RMS / peak / over-0 dB count)
+cd SeaMic\anwav2      &amp;&amp; dotnet build -c Release   &amp;&amp; cd ..
+.\anwav2\bin\Release\net8.0\anwav2.exe render_final.wav analysis_final.txt
+type analysis_final.txt
+
+# 5) VAD flag audible probe
+..\tools\cmaj.exe render SeaMicVadProbe.cmajorpatch --rate=16000 --blockSize=128 `
+    --input=stimulus16k.wav --output=render_probe.wav
+
+# 6) Live mic MVP (headphones ON; real devices, 16 kHz, WASAPI)
+powershell -ExecutionPolicy Bypass -File .\run_live.ps1</pre>
+
+<h2 id="appC">Appendix C — Core code excerpts (final versions)</h2>
+<h4>C.1 VAD decision core (chain2_vad.cmajor, abridged)</h4>
+<pre>// state: ring[2048] win, floor (boot −40 dBFS cap, lower-only), sub-min ×3, hang/flat timers
+float rms   = sqrt (sumSq / float (filled));                 // 32 ms window
+if (initSamp &lt; initLen)  { if (rms &lt; noiseFloor) noiseFloor = rms; ... }   // 0.25 s boot
+// rotation always; speech carries floor forward:  subMinA = noiseFloor;
+if (subMinA &lt; noiseFloor) noiseFloor = subMinA; …            // lower-only
+float snrDb = 20.0f * log10 (rms / noiseFloor);
+if (isSpeech &gt; 0.5f) { … hangover 600 ms / flatness exit … }
+else                 { if (snrDb &gt; enterDb) isSpeech = 1.0f; }   // enter 9 dB, from sample 0
+speech &lt;- isSpeech;</pre>
+
+<h4>C.2 Limiter core (chain3_agc_gate_limit.cmajor, abridged)</h4>
+<pre>float ax = abs(x);
+peak   = (ax &gt; peak) ? ax : peak * relCoeff;      // instant attack, 80 ms release
+delayLine.at(dPos) = x;  … read yd = 64-frame-delayed sample …
+float g = (peak &gt; ceilLin) ? ceilLin / peak : 1.0f;   // ceil = 10^(−1/20)
+out &lt;- yd * g;</pre>
+
+<p style="text-align:center; margin-top:34px; font-size:9.5pt; color:#555;">— End of report —<br>
+Generated 29 September 2026 · SeaTime DSP work package · Source: <code>report\p01…p16.html</code></p>
+
+</body>
+</html>

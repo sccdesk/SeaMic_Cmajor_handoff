@@ -1,0 +1,12 @@
+{
+    "CmajorVersion":    1,
+    "ID":               "com.seatime.seamic-enterprobe",
+    "version":          "1.0",
+    "name":             "SeaMicEnterProbe",
+    "description":      "VAD enter-only latch probe",
+    "category":         "effect",
+    "manufacturer":     "SeaTime",
+    "isInstrument":     false,
+
+    "source":  [ "chain11_enterprobe.cmajor" ]
+}

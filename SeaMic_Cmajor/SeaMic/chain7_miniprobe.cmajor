@@ -1,0 +1,59 @@
+// Minimal VAD proving the decision path works end-to-end (isolates the bug
+// to the window/floor machinery, not to connections or the beep).
+processor VADMini
+{
+    input  stream float in;
+    output stream float speech;
+    float sumSq = 0.0f;
+    float n = 0.0f;
+    void main()
+    {
+        loop
+        {
+            float x = in;
+            sumSq = sumSq + x * x;
+            n = n + 1.0f;
+            float rms = sqrt (sumSq / n);
+            float flag = 0.0f;
+            if (rms > 0.005f)
+                flag = 1.0f;
+            speech <- flag;
+            advance();
+        }
+    }
+}
+
+processor FlagBeepMini
+{
+    input  stream float speech;
+    output stream float out;
+    float phase = 0.0f;
+    void main()
+    {
+        float fs = float (processor.frequency);
+        float inc = 440.0f / fs;
+        loop
+        {
+            float sp = speech;
+            phase = phase + inc;
+            if (phase >= 1.0f)
+                phase = phase - 1.0f;
+            out <- sin (phase * float (twoPi)) * sp * 0.5f;
+            advance();
+        }
+    }
+}
+
+graph SeaMicMiniProbe [[ main ]]
+{
+    input  stream float in;
+    output stream float out;
+    node vad = VADMini;
+    node bp  = FlagBeepMini;
+    connection
+    {
+        in -> vad.in;
+        vad.speech -> bp.speech;
+        bp.out -> out;
+    }
+}

@@ -1,0 +1,30 @@
+processor DCOffsetRemoval
+{
+    input stream float in;
+    output stream float out;
+    input event float32 bypassDc [[ name: "Bypassed (ON = dry signal)", init: 1, boolean ]];
+
+    float previousInput = 0.0f;
+    float previousOutput = 0.0f;
+    bool isBypassed = true;
+
+    event bypassDc (float32 value)
+    {
+        isBypassed = value > 0.5f;
+    }
+
+    void main()
+    {
+        float coefficient = exp (-float (twoPi) * 20.0f / float (processor.frequency));
+
+        loop
+        {
+            float sample = in;
+            float filtered = sample - previousInput + coefficient * previousOutput;
+            previousInput = sample;
+            previousOutput = filtered;
+            out <- isBypassed ? sample : filtered;
+            advance();
+        }
+    }
+}

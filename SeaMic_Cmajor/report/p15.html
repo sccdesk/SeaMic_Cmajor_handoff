@@ -1,0 +1,49 @@
+<h2 id="ch8">8. Conclusions and Future Work</h2>
+
+<h3>8.1 Conclusions</h3>
+<ol>
+<li><b>The product requirement is met.</b> Both manual sliders can be removed: an adaptive
+min-statistics VAD (9/4&nbsp;dB hysteresis, 600&nbsp;ms hold, flatness exit) replaces the threshold,
+and a VAD-frozen AGC (−19&nbsp;dBFS target, bounded ±gain, asymmetric ballistics) replaces the gain,
+with a per-sample limiter guaranteeing ≤ −1&nbsp;dBFS into Opus.</li>
+<li><b>The theoretical shortcuts held under test.</b> Re-deriving BS.1770 K-weighting at runtime
+instead of porting 48&nbsp;kHz coefficients, using R128's perception model but not its time
+constants, and replacing the contested bimodality heuristic with cap-booted lower-only
+min-statistics were all vindicated by the final measurements — while the stakeholder's fear
+(threshold heuristics are fragile) was also vindicated, in our own first implementation (M3).</li>
+<li><b>Ordering matters more than algorithms.</b> <i>Measure pre-gain, apply pre-gate, update only on
+speech</i> resolved the contested architecture question and is the design's central transferable idea.</li>
+<li><b>Process, not just code.</b> The probe-bisect methodology with input-independent control probes
+separated three bug classes — language mistakes, DSP defects, tooling defects — and recovered a
+schedule that a listening-only process would have lost inside the first hour (M7).</li>
+<li><b>Deliverables are runnable.</b> <code>SeaMicLive.cmajorpatch</code> runs on real WASAPI
+hardware at 16&nbsp;kHz today; the offline bench reproduces every number in this report from a
+single command sequence (Appendix B).</li>
+</ol>
+
+<h3>8.2 Future work</h3>
+<table>
+<tr><th>Priority</th><th>Item</th><th>Rationale</th></tr>
+<tr><td>High</td><td>Port the chain to SeaTime's C++ engine (equations are rate-agnostic; coefficients derived at init)</td><td>Product integration; Cmajor export --target=cpp available as a cross-check</td></tr>
+<tr><td>High</td><td>Calibrate AGC error on a K-weighted measurement + verify against a loudness meter</td><td>Closes the 4–5 dB target gap (§7.4)</td></tr>
+<tr><td>Med</td><td>Dual-rate AGC release (fast catch for large errors)</td><td>Quiet-burst ride-up without sacrificing anti-pumping</td></tr>
+<tr><td>Med</td><td>Feed <code>vadFlag</code> to Opus DTX / comfort-noise control</td><td>Bitrate savings aligned with gate state</td></tr>
+<tr><td>Med</td><td>Formal .cmajtest suite with expected-output auto-update</td><td>Regression safety for parameter sweeps</td></tr>
+<tr><td>Low</td><td>Non-stationary noise: RNNoise-class NS as a separate stage</td><td>Only if babble/keyboard become field issues (§2.4)</td></tr>
+<tr><td>Low</td><td>Expose VAD thresholds as GUI value inputs with safe render defaults</td><td>Tuning UX (mind M2 when doing it)</td></tr>
+</table>
+
+<h2 id="ch9">9. References</h2>
+<ol class="ref">
+<li>ITU-R BS.1770-4, <i>Algorithms to measure audio programme loudness and true-peak audio level</i>, International Telecommunication Union, 2015.</li>
+<li>EBU R 128 / EBU Tech 3341, 3342, 3344, <i>Loudness normalisation and permitted maximum level of audio signals</i>, European Broadcasting Union, Geneva, 2010–2016.</li>
+<li>R. Bristow-Johnson, <i>Audio EQ Cookbook</i>, 1998 (revised online) — RBJ high-shelf / high-pass bilinear transforms.</li>
+<li>V. Zölzer (ed.), <i>DAFX: Digital Audio Effects</i>, 2nd ed., Wiley, 2011 — biquad cascades, AGC and limiter chapters.</li>
+<li>I. Cohen, <i>Noise spectrum estimation in adverse environments: Improved min statistics controlled by a priori noise information</i>, Speech Communication, 2003.</li>
+<li>R. Martin, <i>Noise power spectral density estimation based on optimal smoothing and minimum statistics</i>, IEEE Trans. Speech and Audio Processing, vol. 9, no. 5, 2001.</li>
+<li>J.-M. Valin, <i>A Hybrid DSP/Deep Learning Approach to Real-Time Full-Band Speech Enhancement</i> (RNNoise), IEEE MMSP, 2017.</li>
+<li>J. Sohn, N. S. Kim, W. Sung, <i>A statistical model-based voice activity detection</i>, IEEE Signal Processing Letters, 1999 (WebRTC-VAD lineage).</li>
+<li>K. Vos, J.-M. Valin et al., <i>RFC 6716 — Definition of the Opus Audio Codec</i>, IETF, 2012 (DTX/CNG behaviour).</li>
+<li>Cmajor Software Ltd., <i>Cmajor Language Reference, Patch Format and Standard Library</i>, cmajor.dev, accessed 29 Sep 2026.</li>
+<li>S. Lloyd, <i>Least squares quantization in PCM</i>; T. Otsu, <i>A threshold selection method from gray-level histograms</i> — basis of the considered-then-rejected bimodality thresholding.</li>
+</ol>

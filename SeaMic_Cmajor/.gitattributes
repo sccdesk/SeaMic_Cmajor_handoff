@@ -1,0 +1,15 @@
+# Normalize line endings; keep media/tools binary
+* text=auto
+*.cmajor text
+*.cmajorpatch text
+*.cs text
+*.csproj text
+*.md text
+*.ps1 text
+*.html text
+*.js text
+*.json text
+*.txt text
+*.wav binary
+*.pdf binary
+*.exe binary

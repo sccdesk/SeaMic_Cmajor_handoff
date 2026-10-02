@@ -1,0 +1,124 @@
+processor SeaMicAECProcessor
+{
+    input stream float32 microphone;
+    input stream float32 farEndReference;
+    output stream float32 cleanedMicrophone;
+
+    output value float32 erle;
+    output value float32 microphoneLevelDb;
+    output value float32 residualLevelDb;
+    output value float32 echoEstimateLevelDb;
+
+    input event float32 filterLength [[ name: "Filter Length (taps)", min: 32, max: 1024, init: 512, step: 32 ]];
+    input event float32 stepSize [[ name: "Step Size", min: 0.01, max: 2, init: 0.5, step: 0.01 ]];
+    input event float32 doubleTalkEnabled [[ name: "Double-Talk Detector", init: 1, boolean ]];
+    input event float32 bypassAec [[ name: "Bypass AEC", init: 1, boolean, hidden: true ]];
+
+    let maxTaps = 1024;
+
+    float32[1024] weights;
+    float32[2048] referenceHistory;
+    wrap<1024> position = 0;
+    int activeTaps = 512;
+
+    float64 adaptationRate = 0.5;
+    float64 powerSmoothing = 1.0 / 512.0;
+    float64 referencePower = 0.0;
+    float64 microphonePower = 0.0;
+    float64 residualPower = 0.0;
+    float64 echoPower = 0.0;
+
+    bool doubleTalkDetection = true;
+    bool bypass = true;
+    bool adaptationFrozen = false;
+    bool converged = false;
+
+    event filterLength (float32 value)
+    {
+        int taps = int (value);
+        if (taps < 16)
+            taps = 16;
+        if (taps > maxTaps)
+            taps = maxTaps;
+
+        activeTaps = taps;
+        powerSmoothing = 1.0 / float64 (taps);
+    }
+
+    event stepSize (float32 value)
+    {
+        adaptationRate = float64 (value);
+    }
+
+    event doubleTalkEnabled (float32 value)
+    {
+        doubleTalkDetection = value > 0.5f;
+    }
+
+    event bypassAec (float32 value)
+    {
+        bypass = value > 0.5f;
+    }
+
+    void main()
+    {
+        float64 meterSmoothing = 1.0 / max (processor.frequency * 0.1, 1.0);
+
+        loop
+        {
+            float64 reference = float64 (farEndReference);
+            float64 mic = float64 (microphone);
+
+            referenceHistory[position] = float32 (reference);
+            referenceHistory[wrap<2048> (position + maxTaps)] = float32 (reference);
+
+            float64 estimatedEcho = 0.0;
+            for (int tap = 0; tap < activeTaps; ++tap)
+                estimatedEcho = estimatedEcho
+                    + float64 (weights[wrap<1024> (tap)])
+                    * float64 (referenceHistory[wrap<2048> (position + maxTaps - tap)]);
+
+            float64 residual = mic - estimatedEcho;
+
+            referencePower = referencePower + (reference * reference - referencePower) * powerSmoothing;
+            microphonePower = microphonePower + (mic * mic - microphonePower) * meterSmoothing;
+            residualPower = residualPower + (residual * residual - residualPower) * meterSmoothing;
+            echoPower = echoPower + (estimatedEcho * estimatedEcho - echoPower) * meterSmoothing;
+
+            if (echoPower > 1.0e-7 && echoPower > 0.5 * microphonePower)
+                converged = true;
+
+            adaptationFrozen = doubleTalkDetection
+                && converged
+                && (echoPower > 1.0e-7)
+                && (microphonePower > 4.0 * echoPower);
+
+            if (! bypass && ! adaptationFrozen && referencePower > 1.0e-8)
+            {
+                float64 step = residual * adaptationRate
+                    / (referencePower * float64 (activeTaps) + 1.0e-6);
+
+                for (int tap = 0; tap < activeTaps; ++tap)
+                {
+                    wrap<1024> weightIndex = wrap<1024> (tap);
+                    wrap<2048> historyIndex = wrap<2048> (position + maxTaps - tap);
+                    weights[weightIndex] = float32 (
+                        float64 (weights[weightIndex])
+                        + step * float64 (referenceHistory[historyIndex]));
+                }
+            }
+
+            float64 outputSample = bypass ? mic : residual;
+            cleanedMicrophone <- float32 (outputSample);
+
+            erle <- float32 (10.0 * log10 (
+                (microphonePower + 1.0e-20) / (residualPower + 1.0e-20)));
+            microphoneLevelDb <- float32 (10.0 * log10 (microphonePower + 1.0e-20));
+            residualLevelDb <- float32 (10.0 * log10 (residualPower + 1.0e-20));
+            echoEstimateLevelDb <- float32 (10.0 * log10 (echoPower + 1.0e-20));
+
+            ++position;
+            advance();
+        }
+    }
+}

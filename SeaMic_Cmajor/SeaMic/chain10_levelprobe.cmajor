@@ -1,0 +1,55 @@
+// Probe D: VAD level probe — speech wire replaced by diagnostics:
+// out = processed level test: silence->0.1, speech->0.9 DC (no beep).
+// Distinguishes "VAD logic dead" (flat 0) from "beep broken" (already disproven).
+processor VADLevelTap
+{
+    input  stream float in;
+    output stream float level;
+    float[2048] ring;
+    int   winLen = 512;
+    int   pos = 0;
+    int   filled = 0;
+    float sumSq = 0.0f;
+    int   fsInit = 0;
+    void main()
+    {
+        float fs = float (processor.frequency);
+        if (fsInit == 0)
+        {
+            winLen = int (0.032f * fs);
+            if (winLen > 2048)
+                winLen = 2048;
+            if (winLen < 64)
+                winLen = 64;
+            fsInit = 1;
+        }
+        loop
+        {
+            float x = in;
+            float oldest = ring[pos];
+            sumSq = sumSq - oldest * oldest + x * x;
+            ring[pos] = x;
+            pos = pos + 1;
+            if (pos >= winLen)
+                pos = 0;
+            if (filled < winLen)
+                filled = filled + 1;
+            float rms = sqrt (sumSq / float (filled));
+            // raw RMS on the wire: proves input reaches the processor + window works
+            level <- rms * 10.0f;
+            advance();
+        }
+    }
+}
+
+graph SeaMicLevelProbe [[ main ]]
+{
+    input  stream float in;
+    output stream float out;
+    node tap = VADLevelTap;
+    connection
+    {
+        in -> tap.in;
+        tap.level -> out;
+    }
+}

@@ -1,0 +1,44 @@
+// VAD flag probe: sine/noise stimulus -> vadFlag audible as gated tone.
+// Reuses chain processors; probe graph maps speech flag to a 440 Hz beep
+// so `cmaj render` + segment analysis shows exactly when VAD opens/closes.
+processor FlagBeep
+{
+    input  stream float speech;
+    output stream float out;
+    float phase = 0.0f;
+    void main()
+    {
+        float fs = float (processor.frequency);
+        float inc = 440.0f / fs;
+        loop
+        {
+            float sp = speech;
+            phase = phase + inc;
+            if (phase >= 1.0f)
+                phase = phase - 1.0f;
+            float tone = sin (phase * float (twoPi));
+            out <- tone * sp * 0.5f;
+            advance();
+        }
+    }
+}
+
+graph SeaMicVadProbe [[ main ]]
+{
+    input  stream float in;
+    output stream float out;
+
+    node dc  = DCBlock;
+    node kw  = KWeight;
+    node vad = VAD;
+    node bp  = FlagBeep;
+
+    connection
+    {
+        in -> dc.in;
+        dc.out -> kw.in;
+        kw.out -> vad.in;
+        vad.speech -> bp.speech;
+        bp.out -> out;
+    }
+}

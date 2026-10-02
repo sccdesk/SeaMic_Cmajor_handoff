@@ -1,0 +1,12 @@
+{
+    "CmajorVersion":    1,
+    "ID":               "com.seatime.seamic-valueprobe",
+    "version":          "1.0",
+    "name":             "SeaMicValueProbe",
+    "description":      "Value-endpoint vs plain float hypothesis test",
+    "category":         "effect",
+    "manufacturer":     "SeaTime",
+    "isInstrument":     false,
+
+    "source":  [ "chain12_valueprobe.cmajor" ]
+}

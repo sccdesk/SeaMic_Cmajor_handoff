@@ -1,0 +1,55 @@
+<h3>5.2 Stage-by-stage design</h3>
+
+<h4>(a) DC block</h4>
+<p>First-order high-pass, y[n] = x[n] − x[n−1] + R·y[n−1], with
+R = 1 − 2π·20&nbsp;Hz/f<sub>s</sub> clamped to [0.9, 0.9995]. Removing DC matters twice: it stops the
+integrators downstream from riding a bias, and it protects the K-weighting mean-square from a
+non-audible offset that would still consume headroom. Implemented rate-agnostically (R7).</p>
+
+<h4>(b) K-weighting (perception model)</h4>
+<p>Two cascaded DF1 biquads — the BS.1770 shelf (+3.985&nbsp;dB, f<sub>0</sub>=1681.974&nbsp;Hz,
+S=0.7071) and a 60&nbsp;Hz Q=0.5 high-pass — with coefficients computed from
+<code>processor.frequency</code> on the first frame using RBJ closed forms (§2.2). State: four
+delay elements per stage. Used <i>only</i> by the sidechain; the audio path stays bit-exact with the
+input apart from intentional gain.</p>
+
+<h4>(c) VAD — the hard component</h4>
+<p>Figure 3 is the state diagram of the final VAD. Its estimator (Figure 4) maintains a 32&nbsp;ms
+rectangular RMS window over a circular buffer, reduces it into 1&nbsp;s sub-block minima, and takes
+the lower-only minimum over a 3&nbsp;s sliding window; bootstrapping for the first 0.25&nbsp;s uses
+an instant-minimum track from the &minus;40&nbsp;dBFS cap. Decision: enter at SNR&nbsp;&gt;&nbsp;9&nbsp;dB
+(oor absolute level for safety), exit at SNR&nbsp;&lt;&nbsp;4&nbsp;dB after 600&nbsp;ms hangover,
+plus the flatness override (1.5&nbsp;s grace, then 600&nbsp;ms below 3&nbsp;dB crest).</p>
+
+<figure>
+<svg width="660" height="240" viewBox="0 0 660 240" xmlns="http://www.w3.org/2000/svg" font-family="Georgia" font-size="11.5">
+  <defs><marker id="s1" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#222"/></marker></defs>
+  <g fill="#eef6ee" stroke="#222">
+    <ellipse cx="120" cy="120" rx="95" ry="52"/>
+    <ellipse cx="480" cy="120" rx="95" ry="52"/>
+  </g>
+  <g text-anchor="middle" fill="#111">
+    <text x="120" y="112" font-size="13">STATE: silence</text>
+    <text x="120" y="132" font-size="11">speech = 0&#160;&#160;(gate closes)</text>
+    <text x="480" y="112" font-size="13">STATE: speech</text>
+    <text x="480" y="132" font-size="11">speech = 1&#160;&#160;(AGC updates)</text>
+  </g>
+  <g stroke="#222" stroke-width="1.5" fill="none" marker-end="url(#s1)">
+    <path d="M 215 95 C 300 40, 380 40, 462 92"/>
+    <path d="M 462 150 C 380 205, 300 205, 218 152"/>
+    <path d="M 120 66 C 90 18, 170 8, 150 62"/>
+  </g>
+  <g fill="#111" font-size="10.5">
+    <text x="335" y="48" text-anchor="middle">enter: SNR &gt; 9 dB</text>
+    <text x="335" y="62" text-anchor="middle" font-style="italic">(9 dB above cap-booted floor)</text>
+    <text x="335" y="196" text-anchor="middle">exit: SNR &lt; 4 dB for 600 ms hangover</text>
+    <text x="335" y="210" text-anchor="middle" font-style="italic">OR flatness &lt; 3 dB crest for 600 ms after 1.5 s</text>
+    <text x="120" y="34" text-anchor="middle" font-style="italic">boot 0.25 s: floor falls</text>
+    <text x="120" y="48" text-anchor="middle" font-style="italic">instant-min from −40 dBFS cap</text>
+  </g>
+</svg>
+<figcaption>Figure 3 — VAD finite-state machine. Hysteresis (9/4&nbsp;dB) prevents chatter; the
+hangover and flatness timers implement the "longer hold" requirement; during the 0.25&nbsp;s boot the
+floor converges downward from its cap while decisions already run — the cap guarantees a sane SNR
+from sample 0 (see M3/M5 in §6).</figcaption>
+</figure>

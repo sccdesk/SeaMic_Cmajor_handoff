@@ -1,0 +1,15 @@
+{
+    "CmajorVersion": 1,
+    "ID": "com.seatime.seamic.noise-gate-vad",
+    "version": "1.0",
+    "name": "SeaMic Noise Gate VAD",
+    "description": "Voice activity detector and soft noise gate",
+    "category": "effect",
+    "manufacturer": "SeaTime",
+    "isInstrument": false,
+    "source": [
+        "SeaMicNoiseGateVAD.cmajor",
+        "../../../chain2_vad.cmajor",
+        "../../../chain3_agc_gate_limit.cmajor"
+    ]
+}

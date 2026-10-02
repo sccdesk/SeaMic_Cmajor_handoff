@@ -1,0 +1,20 @@
+graph SeaMicToneWarmth [[ main ]]
+{
+    input stream float in;
+    output stream float out;
+    input tone.drive;
+    input tone.asymmetry;
+    input tone.makeupDb;
+    input tone.bypassTone;
+    input toneDc.bypassDc;
+
+    node tone = Tone;
+    node toneDc = DCOffsetRemoval;
+
+    connection
+    {
+        in -> tone.in;
+        tone.out -> toneDc.in;
+        toneDc.out -> out;
+    }
+}

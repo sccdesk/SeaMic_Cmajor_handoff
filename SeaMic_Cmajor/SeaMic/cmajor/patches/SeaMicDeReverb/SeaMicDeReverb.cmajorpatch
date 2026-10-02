@@ -1,0 +1,14 @@
+{
+    "CmajorVersion": 1,
+    "ID": "com.seatime.seamic.de-reverb",
+    "version": "1.0",
+    "name": "SeaMic De-Reverb",
+    "description": "Envelope-masking de-reverb processor",
+    "category": "effect",
+    "manufacturer": "SeaTime",
+    "isInstrument": false,
+    "source": [
+        "SeaMicDeReverb.cmajor",
+        "../../modules/dsp/DeReverb.cmajor"
+    ]
+}

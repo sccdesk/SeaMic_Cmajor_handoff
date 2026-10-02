@@ -1,0 +1,70 @@
+<h2 id="ch3" class="newpage">3. Technology Stack</h2>
+<table>
+<tr><th>Layer</th><th>Technology</th><th>Version / detail</th><th>Role in the project</th></tr>
+<tr><td>Language</td><td><b>Cmajor</b></td><td>1.0.3209 (VSCode bundle)</td><td>Portable C-family DSP language; processors, graphs, JIT</td></tr>
+<tr><td>Compiler / player</td><td><code>cmaj</code> CLI</td><td>cmaj.exe (from Cmajor Tools extension)</td><td>create / play / render / generate / test; hot-reload player</td></tr>
+<tr><td>Editor</td><td>VS Code + Cmajor Tools</td><td>v1.0.3209</td><td>Syntax, run-patch, GUI parameter exposure</td></tr>
+<tr><td>Audio I/O (live)</td><td>WASAPI</td><td>Windows 10 Pro x64</td><td>16&nbsp;kHz mono device stream (ZOOM F Series mic + headphones)</td></tr>
+<tr><td>Offline stimulus</td><td>.NET 8 console (<code>mkstim</code>)</td><td>C# 12</td><td>7&nbsp;s synthetic speech/noise/transient WAV generator</td></tr>
+<tr><td>Offline measurement</td><td>.NET 8 console (<code>anwav2</code>)</td><td>C# 12</td><td>Generic chunk-walking WAV analyzer: per-segment RMS, peak, over-0&nbsp;dB count (float32-aware — see M7)</td></tr>
+<tr><td>Diagnostics</td><td>9 probe patches + <code>vadprobe</code>/<code>dumpwav</code></td><td>Cmajor / C#</td><td>Bisect methodology of §4</td></tr>
+<tr><td>PDF export</td><td>Edge headless print-to-PDF</td><td>—</td><td>This report</td></tr>
+</table>
+<p><b>Why Cmajor.</b> The project brief allowed any implementation language; Cmajor was chosen because
+(a) it JIT-compiles and hot-reloads, so parameter and logic experiments are instant; (b) its
+<code>cmaj render</code> command gives deterministic offline playback of a patch against a WAV file —
+exactly the closed loop needed for automated DSP validation; (c) the same code exports to C++ (for
+integration into SeaTime's hand-written engine) and to WebAudio for demos. The costs accepted were a
+small, unfamiliar language (two syntax mistakes in the first hour, M1/M2) and a render engine with
+undocumented quirks (M8).</p>
+
+<h2 id="ch4">4. Methodology and Test Bench</h2>
+<p>The process followed a classic iterative DSP development loop, with one addition that proved
+decisive: <b>every behavioural claim had to be produced by a measurement, not by listening to the
+code</b>. Figure 1 shows the loop; it ran roughly 15 times during the session.</p>
+
+<figure>
+<svg width="640" height="150" viewBox="0 0 640 150" xmlns="http://www.w3.org/2000/svg" font-family="Georgia" font-size="12">
+  <defs><marker id="ar" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#333"/></marker></defs>
+  <g fill="#eef3f6" stroke="#333">
+    <rect x="8" y="45" width="110" height="56" rx="6"/>
+    <rect x="150" y="45" width="120" height="56" rx="6"/>
+    <rect x="302" y="45" width="118" height="56" rx="6"/>
+    <rect x="452" y="45" width="86" height="56" rx="6"/>
+    <rect x="570" y="45" width="62" height="56" rx="6"/>
+  </g>
+  <g text-anchor="middle" fill="#111">
+    <text x="63" y="68">Theory &amp;</text><text x="63" y="84">design</text>
+    <text x="210" y="68">Implement</text><text x="210" y="84">(Cmajor)</text>
+    <text x="361" y="68">Offline render</text><text x="361" y="84">+ segment RMS</text>
+    <text x="495" y="68">Probe</text><text x="495" y="84">bisect</text>
+    <text x="601" y="68">Live mic</text><text x="601" y="84">WASAPI</text>
+  </g>
+  <g stroke="#333" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+    <line x1="118" y1="73" x2="146" y2="73"/>
+    <line x1="270" y1="73" x2="298" y2="73"/>
+    <line x1="420" y1="73" x2="448" y2="73"/>
+    <line x1="538" y1="73" x2="566" y2="73"/>
+    <path d="M 361 101 L 361 128 L 210 128 L 210 105"/>
+  </g>
+  <text x="285" y="142" text-anchor="middle" font-size="11" font-style="italic" fill="#333">iterate until measurement matches acceptance criteria</text>
+</svg>
+<figcaption>Figure 1 — Development loop. The feedback path from measurement back to implementation is
+where all eight mistakes of §6 were caught; none of them survived to the live stage.</figcaption>
+</figure>
+
+<h3>4.1 Offline test bench</h3>
+<ol>
+<li><b>Stimulus.</b> <code>stimulus16k.wav</code> — 7&nbsp;s, 16&nbsp;kHz mono, deterministic
+(seed 12345): [0–1&nbsp;s] noise at &minus;50&nbsp;dB &middot; [1–3&nbsp;s] quiet speech-like tone
+cluster at &minus;30&nbsp;dB (harmonic f<sub>0</sub>=130&nbsp;Hz, 4&nbsp;Hz syllabic AM) with a
+single 0.8-amplitude transient at 2.5&nbsp;s &middot; [3–4&nbsp;s] noise at &minus;40&nbsp;dB &middot;
+[4–6&nbsp;s] loud speech at &minus;6&nbsp;dB &middot; [6–7&nbsp;s] noise at &minus;50&nbsp;dB.
+This exercises every branch: quiet-speech detection, transient/limiter handling, noise between and
+after speech, AGC pull-down.</li>
+<li><b>Render.</b> <code>cmaj render SeaMic.cmajorpatch --rate=16000 --blockSize=128 --input=stimulus16k.wav --output=render.wav</code></li>
+<li><b>Measure.</b> <code>anwav2</code> reports per-second-segment RMS, true peak and the count of
+samples strictly above 0&nbsp;dBFS (the clipping criterion for R4).</li>
+<li><b>Attribute.</b> When a number looked wrong, probe patches replaced the suspect stage with a
+readable wire (beep / DC-coded SNR / raw level) — the bisect tree of §6.</li>
+</ol>

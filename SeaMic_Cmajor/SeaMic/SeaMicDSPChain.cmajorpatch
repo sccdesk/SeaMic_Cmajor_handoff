@@ -1,0 +1,20 @@
+{
+    "CmajorVersion":    1,
+    "ID":               "com.seatime.seamic-dsp-chain",
+    "version":          "1.0",
+    "name":             "SeaMic DSP Chain",
+    "description":      "Composite host patch for the SeaMic DSP modules",
+    "category":         "effect",
+    "manufacturer":     "SeaTime",
+    "isInstrument":     false,
+
+    "source":  [
+        "chain1_filters.cmajor",
+        "chain2_vad.cmajor",
+        "chain3_agc_gate_limit.cmajor",
+        "SeaMicDSPChain.cmajor",
+        "cmajor/modules/dsp/DCOffsetRemoval.cmajor",
+        "cmajor/modules/dsp/DeReverb.cmajor",
+        "cmajor/modules/dsp/Tone.cmajor"
+    ]
+}

@@ -1,0 +1,40 @@
+<h3>2.4 Voice Activity Detection and min-statistics noise estimation</h3>
+<p>Energy-based VAD decides speech presence by comparing short-term energy against an estimate of the
+noise floor. The decision itself is trivial; the hard part — and the reason the original hand-tuned
+threshold slider existed at all — is that the floor <i>drifts</i> (HVAC, fan, room tone, keyboard).
+The classical robust solution is <b>minimum statistics</b> <b>[5][6]</b>: within a sliding window that
+is long enough to contain at least one true noise-only interval (typically 1–3&nbsp;s), the
+<i>minimum</i> of the smoothed energy estimates the noise power even while speech occupies most of
+the window. From that floor, a signal-to-noise ratio drives a hysteresis pair:</p>
+<div class="eq">
+SNR<sub>dB</sub> = 20&thinsp;log<sub>10</sub>(E<sub>fast</sub> / E<sub>noise</sub>); &ensp;
+enter if SNR &gt; T<sub>on</sub>, exit if SNR &lt; T<sub>off</sub>, &ensp; T<sub>on</sub> &gt; T<sub>off</sub>
+</div>
+<p>Three refinements implemented here go beyond the textbook sketch:</p>
+<ol>
+<li><b>Lower-only floor.</b> The estimator may only decrease the floor during operation (the
+sub-block window always slides, speech never contributes new minima, and the running floor takes the
+<i>minimum</i> of the window). This removes the failure mode where a speech onset is misread as a
+rising floor — the root cause of the first serious bug in this project (M3, §6).</li>
+<li><b>Cap-booted initialisation.</b> The floor starts at a fixed &minus;40&nbsp;dBFS ceiling and can
+only fall. Starting too low (the natural mistake: start at digital black) manufactures phantom SNR
+at power-on and falsely triggers on pure noise; starting at a known upper bound guarantees that every
+real floor is reached <i>by falling</i>.</li>
+<li><b>Flatness (crest) exit.</b> Stationary broadband noise can out-wait pure SNR hysteresis if the
+floor sits slightly below it. A secondary test — after a 1.5&nbsp;s grace period, force an exit when
+SNR stays under 3&nbsp;dB for 600&nbsp;ms — specifically defeats "fan lock-on" while ignoring the
+natural amplitude modulation of real speech.</li>
+</ol>
+<p>A hangover counter (600&nbsp;ms in the final version, per the stakeholder request for <i>longer
+hold</i>) bridges inter-word pauses so gate chatter never chops syllables.</p>
+
+<div class="callout">
+<b>Design argument #2 — why not RNNoise?</b> A DNN speech/noise classifier (RNNoise <b>[7]</b>) was
+proposed as the alternative to heuristic thresholding. Trade analysis: RNNoise is small by modern
+standards (≈0.5–2&nbsp;MB float, ≈5–10&nbsp;MMACS) but it is a <i>denoiser</i> whose VAD output is a
+by-product; it mandates a 10&nbsp;ms frame cadence and its own latency, and it still requires an AGC
+stage — so it would add a model dependency without solving the actual problem (gain adaptation).
+For stationary noise — the dominant failure case — statistics win: the min-statistics VAD costs a few
+kilobytes of code and no model files (requirement R6). A DNN remains the right tool only when
+non-stationary interference (babble, keyboard) must be suppressed — future work.
+</div>

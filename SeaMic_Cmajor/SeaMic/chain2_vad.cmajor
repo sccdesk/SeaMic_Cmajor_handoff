@@ -1,0 +1,190 @@
+// SeaTime SeaMicChain VAD: rolling RMS, falling noise floor, and speech hangover.
+processor VAD
+{
+    input  stream float in;
+    output stream float speech;
+    output stream float debugSnr;
+    output stream float debugFloor;
+    output stream float debugRms;
+    input event float32 bypassVad [[ name: "Bypassed (ON = detector passes speech)", init: 1, boolean ]];
+    input event float32 enterDb [[ name: "SNR enter threshold", min: 1.0, max: 20.0, init: 9.0, step: 0.5 ]];
+    input event float32 exitDb [[ name: "SNR exit threshold", min: 0.0, max: 15.0, init: 4.0, step: 0.5 ]];
+    input event float32 hangoverMs [[ name: "VAD hangover", min: 0.0, max: 2000.0, init: 400.0, step: 50.0 ]];
+    float enterLevelDb = 9.0f;
+    float exitLevelDb = 4.0f;
+    float hangTimeMs = 400.0f;
+    float absoluteExitLevel = 0.001f;
+    float[2048] ring;
+    int   winLen = 512;
+    int   pos = 0;
+    int   filled = 0;
+    float sumSq = 0.0f;
+    float subMinA = 0.01f;
+    float subMinB = 0.01f;
+    float subMinC = 0.01f;
+    float curSubMin = 1000.0f;
+    int   subCount = 0;
+    int   subLen = 16000;
+    float noiseFloor = 0.01f;
+    float floorCap = 0.01f;
+    float floorMin = 0.0000001f;
+    float hangCount = 0.0f;
+    float isSpeech = 0.0f;
+    bool isBypassed = true;
+    int   initSamp = 0;
+    int   initLen = 4000;
+    int   fsInit = 0;
+
+    event bypassVad (float32 value)
+    {
+        isBypassed = value > 0.5f;
+    }
+
+    event enterDb (float32 value)
+    {
+        float v = value;
+        if (v < 1.0f)
+            v = 1.0f;
+        if (v > 20.0f)
+            v = 20.0f;
+        enterLevelDb = v;
+    }
+
+    event exitDb (float32 value)
+    {
+        float v = value;
+        if (v < 0.0f)
+            v = 0.0f;
+        if (v > 15.0f)
+            v = 15.0f;
+        exitLevelDb = v;
+    }
+
+    event hangoverMs (float32 value)
+    {
+        float v = value;
+        if (v < 0.0f)
+            v = 0.0f;
+        if (v > 2000.0f)
+            v = 2000.0f;
+        hangTimeMs = v;
+    }
+
+    void main()
+    {
+        float fs = float (processor.frequency);
+        if (fsInit == 0)
+        {
+            winLen = int (0.032f * fs);
+            if (winLen > 2048)
+                winLen = 2048;
+            if (winLen < 64)
+                winLen = 64;
+            subLen = int (fs);
+            initLen = int (0.25f * fs);
+            fsInit = 1;
+        }
+        loop
+        {
+            float x = in;
+            float oldest = ring.at(pos);
+            sumSq = max (0.0f, sumSq - oldest * oldest + x * x);
+            ring.at(pos) = x;
+            pos = pos + 1;
+            if (pos >= winLen)
+                pos = 0;
+            if (filled < winLen)
+                filled = filled + 1;
+            float rms = sqrt (sumSq / float (filled));
+            if (rms < floorMin)
+                rms = floorMin;
+            // --- sub-block minimum tracking (only when NOT speech) ---
+            // NOTE: rms here is the 32 ms window mean; single-sample spikes
+            // (e.g. the 0.8 transient) barely move it, so no spike guard needed.
+            // FLOOR LOWERING: the floor may only fall while !speech — speech
+            // onsets must NEVER raise the floor (kills the v1 quiet-speech bug
+            // where init + upward leak dragged the floor into speech territory).
+            if (isSpeech < 0.5f)
+            {
+                if (rms < curSubMin)
+                    curSubMin = rms;
+            }
+            subCount = subCount + 1;
+            if (subCount >= subLen)
+            {
+                subCount = 0;
+                if (isSpeech < 0.5f)
+                {
+                    subMinC = subMinB;
+                    subMinB = subMinA;
+                    if (curSubMin > 100.0f)
+                        subMinA = noiseFloor;
+                    else
+                        subMinA = curSubMin;
+                }
+                else
+                {
+                    subMinC = subMinB;
+                    subMinB = subMinA;
+                    subMinA = noiseFloor;
+                }
+                curSubMin = 1000.0f;
+                if (subMinA < noiseFloor)
+                    noiseFloor = subMinA;
+                if (subMinB < noiseFloor)
+                    noiseFloor = subMinB;
+                if (subMinC < noiseFloor)
+                    noiseFloor = subMinC;
+            }
+            if (initSamp < initLen)
+            {
+                if (rms < noiseFloor)
+                    noiseFloor = rms;
+                subMinA = noiseFloor;
+                subMinB = noiseFloor;
+                subMinC = noiseFloor;
+                curSubMin = 1000.0f;
+                initSamp = initSamp + 1;
+            }
+            if (noiseFloor > floorCap)
+                noiseFloor = floorCap;
+            if (noiseFloor < floorMin)
+                noiseFloor = floorMin;
+            float snrDb = 20.0f * log10 (rms / noiseFloor);
+            debugSnr <- snrDb;
+            debugFloor <- (20.0f * log10 (noiseFloor) + 100.0f) * 0.01f;
+            debugRms <- (20.0f * log10 (rms) + 100.0f) * 0.01f;
+            float enterT = enterLevelDb;
+            float exitT = exitLevelDb;
+            if (exitT > enterT)
+                exitT = enterT;
+            float hangLimit = hangTimeMs * 0.001f * fs;
+            if (isSpeech > 0.5f)
+            {
+                if (snrDb < exitT || rms < absoluteExitLevel)
+                {
+                    hangCount = hangCount + 1.0f;
+                    if (hangCount >= hangLimit)
+                    {
+                        isSpeech = 0.0f;
+                        hangCount = 0.0f;
+                    }
+                }
+                else
+                {
+                    hangCount = 0.0f;
+                }
+            }
+            else
+            {
+                if (snrDb > enterT)
+                {
+                    isSpeech = 1.0f;
+                    hangCount = 0.0f;
+                }
+            }
+            speech <- isBypassed ? 1.0f : isSpeech;
+            advance();
+        }
+    }
+}

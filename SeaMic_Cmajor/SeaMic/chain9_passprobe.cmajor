@@ -1,0 +1,53 @@
+// Probe C: does RENDER even feed file input to `in`? Constant-1 VAD + beep.
+// If render_raw/mini worked but probes are silent, suspect the flag path...
+// mini PROVED flag->beep works. So: does `in` receive the file?
+processor VADPass
+{
+    input  stream float in;
+    output stream float speech;
+    void main()
+    {
+        loop
+        {
+            float x = in;
+            float flag = 1.0f; // always speech
+            speech <- flag;
+            advance();
+        }
+    }
+}
+
+processor FlagBeepPass
+{
+    input  stream float speech;
+    output stream float out;
+    float phase = 0.0f;
+    void main()
+    {
+        float fs = float (processor.frequency);
+        float inc = 440.0f / fs;
+        loop
+        {
+            float sp = speech;
+            phase = phase + inc;
+            if (phase >= 1.0f)
+                phase = phase - 1.0f;
+            out <- sin (phase * float (twoPi)) * sp * 0.5f;
+            advance();
+        }
+    }
+}
+
+graph SeaMicPassProbe [[ main ]]
+{
+    input  stream float in;
+    output stream float out;
+    node vad = VADPass;
+    node bp  = FlagBeepPass;
+    connection
+    {
+        in -> vad.in;
+        vad.speech -> bp.speech;
+        bp.out -> out;
+    }
+}

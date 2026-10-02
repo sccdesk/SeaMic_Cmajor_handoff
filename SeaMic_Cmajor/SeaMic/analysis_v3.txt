@@ -1,0 +1,10 @@
+fmt=-2 channels=2 rate=16000 bits=32 frames=112000
+peak=0,936215 strictlyOver0dB=0
+rms_total_dBFS=-19,87
+seg0_rms_dBFS=-120,00
+seg1_rms_dBFS=-34,01
+seg2_rms_dBFS=-28,40
+seg3_rms_dBFS=-35,99
+seg4_rms_dBFS=-13,96
+seg5_rms_dBFS=-15,28
+seg6_rms_dBFS=-40,23

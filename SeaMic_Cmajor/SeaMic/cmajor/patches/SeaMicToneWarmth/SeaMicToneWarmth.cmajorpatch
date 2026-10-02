@@ -1,0 +1,15 @@
+{
+    "CmajorVersion": 1,
+    "ID": "com.seatime.seamic.tone-warmth",
+    "version": "1.0",
+    "name": "SeaMic Tone Warmth",
+    "description": "Tone waveshaper followed by DC offset removal",
+    "category": "effect",
+    "manufacturer": "SeaTime",
+    "isInstrument": false,
+    "source": [
+        "SeaMicToneWarmth.cmajor",
+        "../../modules/dsp/Tone.cmajor",
+        "../../modules/dsp/DCOffsetRemoval.cmajor"
+    ]
+}

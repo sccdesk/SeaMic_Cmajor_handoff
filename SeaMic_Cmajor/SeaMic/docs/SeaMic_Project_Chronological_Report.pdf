@@ -1,0 +1,292 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R] /Count 5 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 4099 >>
+stream
+q 0.040 0.140 0.320 rg 0 585 612 207 re f Q
+q 0.790 0.160 0.130 rg 50 563 58 5 re f Q
+BT /F2 10 Tf 0.830 0.880 0.960 rg 1 0 0 1 50 745 Tm (SEAMIC  /  DSP ENGINEERING) Tj ET
+BT /F2 29 Tf 1.000 1.000 1.000 rg 1 0 0 1 50 685 Tm (Project history and) Tj ET
+BT /F2 29 Tf 1.000 1.000 1.000 rg 1 0 0 1 50 647 Tm (engineering report) Tj ET
+BT /F1 11 Tf 0.880 0.910 0.960 rg 1 0 0 1 50 612 Tm (Chronological account of the DSP console, processing chain,) Tj ET
+BT /F1 11 Tf 0.880 0.910 0.960 rg 1 0 0 1 50 594 Tm (debugging work, real-time controls and audio test tools) Tj ET
+BT /F2 9 Tf 0.350 0.390 0.450 rg 1 0 0 1 50 530 Tm (REPORT DATE) Tj ET
+BT /F1 10 Tf 0.100 0.100 0.100 rg 1 0 0 1 160 530 Tm (1 October 2026) Tj ET
+BT /F2 9 Tf 0.350 0.390 0.450 rg 1 0 0 1 50 502 Tm (PROJECT) Tj ET
+BT /F1 10 Tf 0.100 0.100 0.100 rg 1 0 0 1 160 502 Tm (SeaMic - browser-based Cmajor microphone DSP test console) Tj ET
+BT /F2 9 Tf 0.350 0.390 0.450 rg 1 0 0 1 50 474 Tm (PURPOSE) Tj ET
+BT /F1 10 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 458 Tm (Explain how the project evolved, why important DSP and host decisions were made, how) Tj ET
+BT /F1 10 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 444 Tm (reported audio faults were investigated, and how to reproduce tests with microphone) Tj ET
+BT /F1 10 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 430 Tm (recordings or local WAV stimuli.) Tj ET
+q 0.720 0.720 0.720 RG 0.8 w 50 419 m 562 419 l S Q
+BT /F2 12 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 393 Tm (Scope and chronology note) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 374 m 562 374 l S Q
+BT /F1 9 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 361 Tm (This report reconstructs the project in the order recorded in the conversation handoff and) Tj ET
+BT /F1 9 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 348 Tm (verifies technical details against the current source and project notes. The original) Tj ET
+BT /F1 9 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 335 Tm (exchanges do not retain a reliable date for every milestone; the sequence is chronological,) Tj ET
+BT /F1 9 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 322 Tm (but dates are not invented. The report date is the only date applied to the complete account.) Tj ET
+BT /F2 12 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 290 Tm (Executive summary) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 271 m 562 271 l S Q
+BT /F1 9 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 258 Tm (SeaMic grew from a static, dependency-free web sketch into a seven-stage Cmajor processing) Tj ET
+BT /F1 9 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 245 Tm (console. The work progressively clarified the signal architecture, separated modules into) Tj ET
+BT /F1 9 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 232 Tm (standalone patches, exposed bypass and Solo testing, added diagnostics, corrected numerical) Tj ET
+BT /F1 9 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 219 Tm (and envelope-following problems that could cause silence or clipped word endings, and) Tj ET
+BT /F1 9 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 206 Tm (documented which features are real versus still targets. This final delivery adds local) Tj ET
+BT /F1 9 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 193 Tm (recording and WAV stimulus playback through the same live DSP graph.) Tj ET
+BT /F2 16 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 171 Tm (01  |  Starting brief: a lightweight SeaMic web workspace) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 148 m 562 148 l S Q
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 135 Tm (The project began with a deliberately small frontend brief: create a visual home for the SeaMic) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 121.5 Tm (microphone DSP pipeline using only index.html, styles.css and app.js, plus project instructions) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 108.0 Tm (and short architecture notes. The requested stack was plain HTML/CSS/JavaScript, no frameworks,) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 94.5 Tm (dependencies, build, fetch, or ES modules, with Spanish-facing copy and no Cmajor integration at) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 81.0 Tm (that stage. The first objective was orientation: make the signal flow understandable before) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 6855 >>
+stream
+q 0.040 0.140 0.320 rg 0 758 612 34 re f Q
+BT /F2 9 Tf 1.000 1.000 1.000 rg 1 0 0 1 50 771 Tm (SEAMIC  /  CHRONOLOGICAL ENGINEERING REPORT) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 735 Tm (expanding the DSP implementation.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 716.5 Tm (- The first visual was a simple introduction and a card diagram for the stages already known:) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 703.3 Tm (  DC block, K-weighting, VAD, AGC, Soft Gate and Limiter.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 688.0999999999999 Tm (- The workspace structure also reserved legacy and clean module areas, documentation, editor) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 674.8999999999999 Tm (  settings and Copilot guidance so later imports had a clear home.) Tj ET
+BT /F2 16 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 655.6999999999998 Tm (02  |  Moving from a diagram to a working Cmajor handoff) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 632.6999999999998 m 562 632.6999999999998 l S Q
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 619.6999999999998 Tm (The next project phase connected the web workspace to SeaMic Cmajor and prepared the console to) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 606.1999999999998 Tm (host the DSP UI. Modules were imported from a separate workspace, so the handoff asked for code) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 592.6999999999998 Tm (and naming cleanup rather than a blind copy. The console was changed to a vertical, block-based) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 579.1999999999998 Tm (rack: engine/session controls first, then sequential plugins, then output. This established a) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 565.6999999999998 Tm (physical-console mental model and gave each stage a clear place for its controls and status.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 547.1999999999998 Tm (- The initial expanded chain was Input -> AEC -> Loudness -> Output. The module sequence was) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 533.9999999999998 Tm (  explicitly expected to grow by inserting plugin stages between input and output.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 518.7999999999997 Tm (- The architecture footer/diagram was made to show ADC -> DSP1 -> DSP2 ... -> DA, and then) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 505.59999999999974 Tm (  relabelled with meaningful DSP names rather than leaving numbered generic blocks.) Tj ET
+BT /F2 16 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 486.39999999999975 Tm (03  |  Defining the intended broadcast voice architecture) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 463.39999999999975 m 562 463.39999999999975 l S Q
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 450.39999999999975 Tm (The chain evolved from a small set of filters into a planned broadcast voice path. The placement) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 436.89999999999975 Tm (decisions mattered: AEC uses far-end playback as its reference; De-Reverb comes immediately after) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 423.39999999999975 Tm (AEC so room tails do not hold the voice detector open; loudness normalization precedes Tone so the) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 409.89999999999975 Tm (nonlinear stage sees a more consistent level; and the limiter is last to contain peaks generated) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 396.39999999999975 Tm (by earlier processing.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 377.89999999999975 Tm (- The target order became ADC \(16 kHz, float\) -> DC Offset Removal -> AEC -> De-Reverb ->) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 364.69999999999976 Tm (  Noise Gate/VAD -> Loudness Normalisation -> Tone/Warmth -> Look-Ahead Limiter -> Output ->) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 351.4999999999998 Tm (  Opus -> Network.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 336.2999999999998 Tm (- The architecture was split into independent Cmajor patches where needed, rather than) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 323.0999999999998 Tm (  presenting a diagram with missing functional stages. Transport stages Opus and Network) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 309.8999999999998 Tm (  remain labelled targets; they are not implemented in these patches.) Tj ET
+BT /F2 16 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 290.6999999999998 Tm (04  |  Console identity, observability and module testing) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 267.6999999999998 m 562 267.6999999999998 l S Q
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 254.69999999999982 Tm (A later design brief defined a strict retro desktop console: hard borders and bevels, Tahoma-like) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 241.19999999999982 Tm (UI type, monospace numeric readouts, scientific data colors, and no soft gradients, glass effects,) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 227.69999999999982 Tm (blurred shadows or chart decoration. This kept the interface consistent with an AnyDesk One /) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 214.19999999999982 Tm (Windows desktop visual language while reserving color for signal categories and alerts.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 195.69999999999982 Tm (- The interface remained plain HTML, CSS and JavaScript with no third-party runtime libraries.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 182.49999999999983 Tm (  The generated Cmajor WebAudio runtimes are the explicit exception required to run the DSP;) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 169.29999999999984 Tm (  they are generated by the Cmajor tool, not manually authored libraries.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 154.09999999999985 Tm (- Every module starts bypassed. Bypass is described as a dry pass-through state, and controls) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 140.89999999999986 Tm (  say Activate or Bypass so the current state and the next action are not conflated.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 125.69999999999986 Tm (- Per-module Solo isolates one processor for fault-finding, bypassing the others. Module) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 112.49999999999986 Tm (  detail disclosures were added to explain implementation and show representative Cmajor) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 99.29999999999986 Tm (  source, rather than presenting aspirational math as if it were running code.) Tj ET
+q 0.70 G 0.5 w 50 38 m 562 38 l S Q
+BT /F1 8 Tf 0.35 0.35 0.35 rg 1 0 0 1 50 24 Tm (SeaMic | Engineering history | 1 October 2026) Tj ET
+BT /F1 8 Tf 0.35 0.35 0.35 rg 1 0 0 1 535 24 Tm (Page 2) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 7053 >>
+stream
+q 0.040 0.140 0.320 rg 0 758 612 34 re f Q
+BT /F2 9 Tf 1.000 1.000 1.000 rg 1 0 0 1 50 771 Tm (SEAMIC  /  CHRONOLOGICAL ENGINEERING REPORT) Tj ET
+BT /F2 16 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 731 Tm (05  |  Seven standalone stages and application playback reference) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 708 m 562 708 l S Q
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 695 Tm (The web host now loads seven independent patches in series: SeaMicDCOffset, SeaMicAEC,) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 681.5 Tm (SeaMicDeReverb, SeaMicNoiseGateVAD, SeaMicLoudnessNormalization, SeaMicToneWarmth and) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 668.0 Tm (SeaMicLookAheadLimiter. A composite graph remains for command-line work but is not confused with a) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 654.5 Tm (browser module. The AEC stage has a second, distinct signal path: the SeaTime playback node is) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 641.0 Tm (routed to the speakers and tapped before output as the far-end reference.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 622.5 Tm (- AEC uses an adaptive NLMS filter with adjustable filter length and step size, and can freeze) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 609.3 Tm (  adaptation under double-talk. It stays locked/bypassed without a live playback reference;) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 596.0999999999999 Tm (  the console does not perform system loopback capture.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 580.8999999999999 Tm (- DC Offset removal filters both microphone and reference paths. The noise detector also) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 567.6999999999998 Tm (  supplies a speech flag to the loudness AGC sidechain; Tone includes a post-shaper DC) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 554.4999999999998 Tm (  blocker.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 539.2999999999997 Tm (- Generated bundles live under web/generated/<patch>/ and must be regenerated from Cmajor) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 526.0999999999997 Tm (  source. They are not hand-edited. Cmajor WebAudio requires the local HTTP server; file:// is) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 512.8999999999996 Tm (  not supported for these module bundles.) Tj ET
+BT /F2 16 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 493.69999999999965 Tm (06  |  Audio failures: loudness/tone silence and numerical stability) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 470.69999999999965 m 562 470.69999999999965 l S Q
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 457.69999999999965 Tm (A reported failure was that enabling modules 5 and 6 \(Loudness and Tone\) could stop speaker) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 444.19999999999965 Tm (output. The project notes identify a root cause in the AGC rolling RMS sum: floating-point) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 430.69999999999965 Tm (subtraction can leave a tiny negative value even though the mathematical sum of squares cannot be) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 417.19999999999965 Tm (negative. Taking sqrt of that negative residue creates NaN; the non-finite gain then contaminates) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 403.69999999999965 Tm (AGC output and the downstream Tone stage, yielding silence. The AGC accumulator is now clamped to) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 390.19999999999965 Tm (zero before RMS calculation. The VAD rolling RMS accumulator received the same numerical guard.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 371.69999999999965 Tm (- This fix addresses a numeric invalid-state path; it is not an audio level threshold or a) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 358.49999999999966 Tm (  substitute for listening tests.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 343.29999999999967 Tm (- Synthetic tests were used to verify the dry/DSP routes and Loudness/Tone recovery after) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 330.0999999999997 Tm (  silence. No real microphone was opened during the validation described in the handoff.) Tj ET
+BT /F2 16 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 310.8999999999997 Tm (07  |  De-Reverb artifacts and clipped word endings) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 287.8999999999997 m 562 287.8999999999997 l S Q
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 274.8999999999997 Tm (The De-Reverb processor is an envelope shaper, not blind deconvolution or a complete acoustic) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 261.3999999999997 Tm (de-reverberator. Its earlier settings allowed materially faster gain modulation and a wider gain) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 247.8999999999997 Tm (span \(roughly -12 dB attenuation to +3 dB boost, with short symmetric smoothing\). Fast) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 234.3999999999997 Tm (envelope-driven gain changes can sound like pumping/glitches and can reduce the level that reaches) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 220.8999999999997 Tm (the voice detector. The code was made conservative: no boost, a floor near -6 dB, and slower) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 207.3999999999997 Tm (gain-reduction/recovery smoothing of 20/120 ms.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 188.8999999999997 Tm (- The VAD is a 32 ms rolling RMS and falling noise-floor/SNR hysteresis detector, not the) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 175.6999999999997 Tm (  proposed Otsu classifier. Its enter/exit thresholds are 9/4 dB SNR.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 160.49999999999972 Tm (- Word endings could be classified as inactive after the short original hangover; a second) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 147.29999999999973 Tm (  forced-close timer could override that hold, and the gate could fade down abruptly. The) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 134.09999999999974 Tm (  forced-close path was removed, VAD hangover increased to 900 ms, gate hold remains an) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 120.89999999999974 Tm (  additional 400 ms and attenuation is ramped over 30 ms.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 105.69999999999973 Tm (- A 0.001 RMS absolute quiet close guard \(~-60 dBFS\) prevents speech from staying latched when) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 92.49999999999973 Tm (  the learned floor becomes extremely low. This fixed threshold is a known tuning risk and) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 79.29999999999973 Tm (  needs representative microphone/noise measurements before changing.) Tj ET
+q 0.70 G 0.5 w 50 38 m 562 38 l S Q
+BT /F1 8 Tf 0.35 0.35 0.35 rg 1 0 0 1 50 24 Tm (SeaMic | Engineering history | 1 October 2026) Tj ET
+BT /F1 8 Tf 0.35 0.35 0.35 rg 1 0 0 1 535 24 Tm (Page 3) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 6809 >>
+stream
+q 0.040 0.140 0.320 rg 0 758 612 34 re f Q
+BT /F2 9 Tf 1.000 1.000 1.000 rg 1 0 0 1 50 771 Tm (SEAMIC  /  CHRONOLOGICAL ENGINEERING REPORT) Tj ET
+BT /F2 16 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 731 Tm (08  |  Making code explanations match the processors) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 708 m 562 708 l S Q
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 695 Tm (The seven module disclosures were rewritten from mathematical descriptions to implementation) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 681.5 Tm (descriptions. The purpose was to make the console a debugging aid: describe the actual running) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 668.0 Tm (equations/controls in everyday language and show source that corresponds to the implementation,) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 654.5 Tm (while explicitly marking roadmap differences such as Otsu VAD, a symmetric Tone curve/shelf,) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 641.0 Tm (integrated EBU R128, and true-peak limiting as pending rather than claiming they already exist.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 622.5 Tm (- Documentation was synchronized across the console, pipeline notes, Cmajor module notes,) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 609.3 Tm (  microphone test guide, VAD debug notes and project memory. Historical test results are) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 596.0999999999999 Tm (  labelled historical where processor behavior has since changed.) Tj ET
+BT /F2 16 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 576.8999999999999 Tm (09  |  Exposing parameters that actually exist in Cmajor) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 553.8999999999999 m 562 553.8999999999999 l S Q
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 540.8999999999999 Tm (The generic Cmajor patch view appeared empty in the browser, so the console was changed to render) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 527.3999999999999 Tm (its own ordinary HTML controls and send each change directly to the patch endpoint with) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 513.8999999999999 Tm (sendEventOrValue. Ranges and initial values are taken from Cmajor endpoint annotations. Controls) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 500.39999999999986 Tm (stay visible before start and become usable once patches have loaded; values are also visible) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 486.89999999999986 Tm (numerically for reproducible tuning.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 468.39999999999986 Tm (- AEC: filter length 32-1024 taps \(512 default\), adaptation step size 0.01-2 \(0.5 default\),) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 455.1999999999999 Tm (  double-talk detector on/off.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 439.9999999999999 Tm (- De-Reverb: amount 0-1 \(0.5 default\). Loudness: target -30 to -6 dBFS \(-19\), maximum gain) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 426.7999999999999 Tm (  0-40 dB \(30\), minimum gain -24 to 0 dB \(-12\).) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 411.5999999999999 Tm (- Tone: drive 1-8 \(1.5\), harmonic asymmetry 0-0.5 \(0.2\), output gain -12 to +6 dB \(-3\). DC) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 398.3999999999999 Tm (  cutoff, VAD/gate timing and thresholds, and limiter ceiling/look-ahead/release are currently) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 385.19999999999993 Tm (  fixed and are stated as such, not represented by fake sliders.) Tj ET
+BT /F2 16 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 365.99999999999994 Tm (10  |  Current delivery: record and replay diagnostic stimuli) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 342.99999999999994 m 562 342.99999999999994 l S Q
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 329.99999999999994 Tm (The newest request adds repeatable test input without changing the Cmajor chain. The audio-test) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 316.49999999999994 Tm (block is placed beside engine controls. Recording captures the microphone locally as mono 16-bit) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 302.99999999999994 Tm (PCM WAV at the active AudioContext rate, with a five-minute cap; the resulting buffer can be) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 289.49999999999994 Tm (replayed through the same input merger and all seven serial patches or downloaded as a WAV file.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 270.99999999999994 Tm (- A user can select a local WAV, inspect its duration/channel/rate, and play it through that) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 257.79999999999995 Tm (  same chain. WebAudio decodes/resamples it to the active context; the mono processing input) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 244.59999999999997 Tm (  receives the browser downmix for multichannel material.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 229.39999999999998 Tm (- During test playback the live microphone path is temporarily muted to prevent test signal) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 216.2 Tm (  mixing. The test source feeds the normal input monitor and the DSP chain, so it can be heard) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 203.0 Tm (  dry, through individual active stages/Solo, or through the full chain. The monitor route) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 189.8 Tm (  label changes to TEST AUDIO while it is active.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 174.60000000000002 Tm (- The application playback/AEC reference bus is separate and unchanged; playing a test file as) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 161.40000000000003 Tm (  microphone input does not fabricate an AEC reference. All capture and file decoding stay in) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 148.20000000000005 Tm (  the browser; no upload or server-side audio processing was introduced.) Tj ET
+BT /F2 16 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 129.00000000000006 Tm (11  |  Verification, usage and remaining boundaries) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 106.00000000000006 m 562 106.00000000000006 l S Q
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 93.00000000000006 Tm (Editor diagnostics reported no HTML, CSS or JavaScript issues. Browser smoke tests used an) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 79.50000000000006 Tm (oscillator-backed synthetic microphone and a generated 440 Hz WAV: all seven Cmajor modules) Tj ET
+q 0.70 G 0.5 w 50 38 m 562 38 l S Q
+BT /F1 8 Tf 0.35 0.35 0.35 rg 1 0 0 1 50 24 Tm (SeaMic | Engineering history | 1 October 2026) Tj ET
+BT /F1 8 Tf 0.35 0.35 0.35 rg 1 0 0 1 535 24 Tm (Page 4) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 4461 >>
+stream
+q 0.040 0.140 0.320 rg 0 758 612 34 re f Q
+BT /F2 9 Tf 1.000 1.000 1.000 rg 1 0 0 1 50 771 Tm (SEAMIC  /  CHRONOLOGICAL ENGINEERING REPORT) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 735 Tm (loaded; microphone capture produced a 16 kHz WAV buffer; the recording was replayable and) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 721.5 Tm (downloadable; the local WAV decoded and played; an active Tone stage showed TEST AUDIO -> seven) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 708.0 Tm (DSP modules -> output and a measurable output level; Stop returned the host to 0/7 loaded with no) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 694.5 Tm (browser console errors. A prior Cmajor validation compiled all seven standalone patches and passed) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 681.0 Tm (three AEC tests.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 662.5 Tm (- To test locally, start the included static server, open http://127.0.0.1:8001/, start the) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 649.3 Tm (  engine, grant microphone permission if recording, and either record a short sample or load a) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 636.0999999999999 Tm (  WAV. Keep the chain bypassed for the dry reference, then activate one module at a time, use) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 622.8999999999999 Tm (  Solo, or enable the full chain. Use headphones for microphone monitoring.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 607.6999999999998 Tm (- No real microphone or SeaTime playback path was exercised in the latest browser tests. Real) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 594.4999999999998 Tm (  AEC convergence, real-room De-Reverb behavior, VAD tail behavior across microphones, and) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 581.2999999999997 Tm (  subjective sound quality remain to be measured by the user.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 566.0999999999997 Tm (- The browser reports its negotiated sample rate; requesting 16 kHz does not guarantee every) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 552.8999999999996 Tm (  browser/device will honor it. The Cmajor bundles still require HTTP. Opus/network transport) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 539.6999999999996 Tm (  and the target algorithms explicitly marked pending remain outside this delivery.) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 524.4999999999995 Tm (- Recording currently uses the broadly supported but deprecated WebAudio ScriptProcessorNode) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 511.29999999999956 Tm (  to obtain PCM samples for WAV construction; current Firefox/Chromium smoke testing) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 498.09999999999957 Tm (  succeeded. Replacing it with a dedicated AudioWorklet recorder is a reasonable future) Tj ET
+BT /F1 9.2 Tf 0.100 0.100 0.100 rg 1 0 0 1 58 484.8999999999996 Tm (  hardening step if the target browser deprecates/removes ScriptProcessorNode.) Tj ET
+BT /F2 16 Tf 0.040 0.140 0.320 rg 1 0 0 1 50 465.6999999999996 Tm (12  |  Source map and project artifacts) Tj ET
+q 0.720 0.720 0.720 RG 0.55 w 50 442.6999999999996 m 562 442.6999999999996 l S Q
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 429.6999999999996 Tm (Primary application files are web/index.html, web/styles.css and web/app.js. Standalone patch) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 416.1999999999996 Tm (graphs and metadata are in cmajor/patches/. DSP processors and AEC implementation are in) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 402.6999999999996 Tm (cmajor/modules/dsp/ and cmajor/modules/aec/ with legacy chain processors at the project root.) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 389.1999999999996 Tm (Architecture and test constraints are described in docs/pipeline-notes.md, web/README.md,) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 375.6999999999996 Tm (MIC_TEST.md, VAD_DEBUG.md and MEMORY.md. This report is the chronological overview; those files) Tj ET
+BT /F1 9.5 Tf 0.120 0.120 0.120 rg 1 0 0 1 50 362.1999999999996 Tm (remain the detailed implementation references.) Tj ET
+q 0.70 G 0.5 w 50 38 m 562 38 l S Q
+BT /F1 8 Tf 0.35 0.35 0.35 rg 1 0 0 1 50 24 Tm (SeaMic | Engineering history | 1 October 2026) Tj ET
+BT /F1 8 Tf 0.35 0.35 0.35 rg 1 0 0 1 535 24 Tm (Page 5) Tj ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 13 0 R >>
+endobj
+xref
+0 15
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000148 00000 n 
+0000000245 00000 n 
+0000000347 00000 n 
+0000004498 00000 n 
+0000004634 00000 n 
+0000011541 00000 n 
+0000011677 00000 n 
+0000018782 00000 n 
+0000018919 00000 n 
+0000025781 00000 n 
+0000025919 00000 n 
+0000030433 00000 n 
+trailer
+<< /Size 15 /Root 1 0 R >>
+startxref
+30571
+%%EOF

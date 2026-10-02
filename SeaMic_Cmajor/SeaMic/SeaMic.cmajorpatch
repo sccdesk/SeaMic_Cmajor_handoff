@@ -1,0 +1,20 @@
+{
+    "CmajorVersion":    1,
+    "ID":               "com.seatime.seamic",
+    "version":          "1.0",
+    "name":             "SeaMic",
+    "description":      "SeaTime mono mic chain: DC offset, de-reverb, VAD, loudness, tone and look-ahead limiter",
+    "category":         "effect",
+    "manufacturer":     "SeaTime",
+    "isInstrument":     false,
+
+    "source":  [
+        "chain1_filters.cmajor",
+        "chain2_vad.cmajor",
+        "chain3_agc_gate_limit.cmajor",
+        "chain4_graph.cmajor",
+        "cmajor/modules/dsp/DCOffsetRemoval.cmajor",
+        "cmajor/modules/dsp/DeReverb.cmajor",
+        "cmajor/modules/dsp/Tone.cmajor"
+    ]
+}

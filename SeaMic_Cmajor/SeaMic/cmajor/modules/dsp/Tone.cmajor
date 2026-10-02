@@ -1,0 +1,56 @@
+processor Tone
+{
+    input stream float in;
+    output stream float out;
+
+    input event float32 drive [[ name: "Drive", min: 1.0, max: 8.0, init: 1.5, step: 0.1 ]];
+    input event float32 asymmetry [[ name: "Harmonic asymmetry", min: 0.0, max: 0.5, init: 0.2, step: 0.01 ]];
+    input event float32 makeupDb [[ name: "Output gain (dB)", min: -12.0, max: 6.0, init: -3.0, step: 0.5 ]];
+    input event float32 bypassTone [[ name: "Bypassed (ON = dry signal)", init: 1, boolean ]];
+
+    float driveAmount = 1.5f;
+    float asymmetryAmount = 0.2f;
+    float makeupGain = 0.70794578f;
+    bool isBypassed = true;
+    float wetMix = 0.0f;
+
+    event drive (float32 value)
+    {
+        driveAmount = min (max (value, 1.0f), 8.0f);
+    }
+
+    event asymmetry (float32 value)
+    {
+        asymmetryAmount = min (max (value, 0.0f), 0.5f);
+    }
+
+    event makeupDb (float32 value)
+    {
+        makeupGain = pow (10.0f, min (max (value, -12.0f), 6.0f) / 20.0f);
+    }
+
+    event bypassTone (float32 value)
+    {
+        isBypassed = value > 0.5f;
+    }
+
+    void main()
+    {
+        float mixSmoothing = 1.0f - exp (-1.0f / (0.005f * float (processor.frequency)));
+
+        loop
+        {
+            float sample = in;
+            float driven = sample * driveAmount;
+            float magnitude = abs (driven);
+            float compressed = driven / (1.0f + magnitude);
+            float shaped = (compressed + asymmetryAmount * compressed * compressed)
+                / (1.0f + asymmetryAmount);
+            float targetMix = isBypassed ? 0.0f : 1.0f;
+            wetMix = wetMix + (targetMix - wetMix) * mixSmoothing;
+            float outputSample = sample + (shaped * makeupGain - sample) * wetMix;
+            out <- outputSample;
+            advance();
+        }
+    }
+}

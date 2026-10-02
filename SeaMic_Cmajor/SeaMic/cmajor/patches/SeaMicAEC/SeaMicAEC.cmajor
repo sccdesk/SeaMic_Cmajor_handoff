@@ -1,0 +1,29 @@
+graph SeaMicAEC [[ main ]]
+{
+    input stream float32 microphone;
+    input stream float32 farEndReference;
+    output stream float32 cleanedMicrophone;
+
+    input canceller.filterLength;
+    input canceller.stepSize;
+    input canceller.doubleTalkEnabled;
+    input canceller.bypassAec;
+    input event float32 bypassDcFilters [[ name: "Bypassed (ON = dry signal)", init: 1, boolean, hidden: true ]];
+
+    output canceller.erle;
+    output canceller.microphoneLevelDb;
+    output canceller.residualLevelDb;
+    output canceller.echoEstimateLevelDb;
+
+    node dcMicrophone = DCOffsetRemoval;
+    node dcReference = DCOffsetRemoval;
+    node canceller = SeaMicAECProcessor;
+
+    connection microphone -> dcMicrophone.in;
+    connection dcMicrophone.out -> canceller.microphone;
+    connection bypassDcFilters -> dcMicrophone.bypassDc;
+    connection bypassDcFilters -> dcReference.bypassDc;
+    connection farEndReference -> dcReference.in;
+    connection dcReference.out -> canceller.farEndReference;
+    connection canceller.cleanedMicrophone -> cleanedMicrophone;
+}

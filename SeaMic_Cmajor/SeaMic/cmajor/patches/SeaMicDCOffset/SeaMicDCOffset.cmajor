@@ -1,0 +1,21 @@
+graph SeaMicDCOffset [[ main ]]
+{
+    input stream float microphone;
+    input stream float farEndReference;
+    output stream float cleanedMicrophone;
+    output stream float cleanedReference;
+    input event float32 bypassDc [[ name: "Bypassed (ON = dry signal)", init: 1, boolean ]];
+
+    node microphoneDc = DCOffsetRemoval;
+    node referenceDc = DCOffsetRemoval;
+
+    connection
+    {
+        microphone -> microphoneDc.in;
+        farEndReference -> referenceDc.in;
+        bypassDc -> microphoneDc.bypassDc;
+        bypassDc -> referenceDc.bypassDc;
+        microphoneDc.out -> cleanedMicrophone;
+        referenceDc.out -> cleanedReference;
+    }
+}

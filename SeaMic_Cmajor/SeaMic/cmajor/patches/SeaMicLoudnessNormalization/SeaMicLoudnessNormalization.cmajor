@@ -1,0 +1,24 @@
+graph SeaMicLoudnessNormalization [[ main ]]
+{
+    input stream float in;
+    input stream float speech;
+    output stream float out;
+
+    input agc.targetDb;
+    input agc.maxGainDb;
+    input agc.minGainDb;
+    input kw.bypassKWeight;
+    input agc.bypassAGC;
+
+    node kw = KWeight;
+    node agc = AGC;
+
+    connection
+    {
+        in -> kw.in;
+        in -> agc.in;
+        speech -> agc.speech;
+        kw.out -> agc.side;
+        agc.out -> out;
+    }
+}

@@ -1,0 +1,14 @@
+graph SeaMicLookAheadLimiter [[ main ]]
+{
+    input stream float in;
+    output stream float out;
+    input limiter.bypassLimiter;
+
+    node limiter = Limiter;
+
+    connection
+    {
+        in -> limiter.in;
+        limiter.out -> out;
+    }
+}

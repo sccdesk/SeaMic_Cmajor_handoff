@@ -1,0 +1,29 @@
+# === Environment / secrets ===
+.env
+.env.*
+!.env.example
+
+# === Dependencies & build output ===
+node_modules/
+dist/
+build/
+out/
+.cache/
+
+# === Logs & temporary files ===
+*.log
+logs/
+*.tmp
+*.bak
+~$*
+
+# === Session inspection artifacts ===
+_inspect/
+SeaMic_Cmajor/SeaMic/_baseline_*.wav
+
+# === OS / editor noise ===
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vs/
+*.user

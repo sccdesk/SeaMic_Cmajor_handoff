@@ -1,0 +1,25 @@
+graph SeaMicNoiseGateVAD [[ main ]]
+{
+    input stream float in;
+    output stream float out;
+    output stream float speech;
+    input vad.bypassVad;
+    input vad.enterDb;
+    input vad.exitDb;
+    input vad.hangoverMs;
+    input gate.bypassGate;
+    input gate.gateDepthDb;
+    input gate.gateHoldMs;
+
+    node vad = VAD;
+    node gate = SoftGate;
+
+    connection
+    {
+        in -> vad.in;
+        in -> gate.in;
+        vad.speech -> gate.speech;
+        vad.speech -> speech;
+        gate.out -> out;
+    }
+}

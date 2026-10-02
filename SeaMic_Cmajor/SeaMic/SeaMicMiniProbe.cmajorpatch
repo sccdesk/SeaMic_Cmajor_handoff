@@ -1,0 +1,12 @@
+{
+    "CmajorVersion":    1,
+    "ID":               "com.seatime.seamic-miniprobe",
+    "version":          "1.0",
+    "name":             "SeaMicMiniProbe",
+    "description":      "Minimal VAD decision-path sanity probe",
+    "category":         "effect",
+    "manufacturer":     "SeaTime",
+    "isInstrument":     false,
+
+    "source":  [ "chain7_miniprobe.cmajor" ]
+}

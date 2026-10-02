@@ -1,0 +1,60 @@
+processor DeReverb
+{
+    input stream float in;
+    output stream float out;
+
+    input event float32 amount [[ name: "De-reverb amount", min: 0.0, max: 1.0, init: 0.5, step: 0.05 ]];
+    input event float32 bypassDeReverb [[ name: "Bypassed (ON = dry signal)", init: 1, boolean ]];
+
+    float intensity = 0.5f;
+    bool isBypassed = true;
+    float fastEnvelope = 0.0f;
+    float slowEnvelope = 0.0f;
+    float gainEnvelope = 1.0f;
+
+    event amount (float32 value)
+    {
+        intensity = min (max (value, 0.0f), 1.0f);
+    }
+
+    event bypassDeReverb (float32 value)
+    {
+        isBypassed = value > 0.5f;
+    }
+
+    void main()
+    {
+        float fs = float (processor.frequency);
+        float fastAttack = 1.0f - exp (-1.0f / (0.001f * fs));
+        float fastRelease = 1.0f - exp (-1.0f / (0.030f * fs));
+        float slowAttack = 1.0f - exp (-1.0f / (0.050f * fs));
+        float slowRelease = 1.0f - exp (-1.0f / (0.500f * fs));
+        float gainAttack = 1.0f - exp (-1.0f / (0.020f * fs));
+        float gainRelease = 1.0f - exp (-1.0f / (0.120f * fs));
+        float minimumGain = 0.50118723f;
+
+        loop
+        {
+            float sample = in;
+            float level = abs (sample);
+
+            float fastCoefficient = level > fastEnvelope ? fastAttack : fastRelease;
+            float slowCoefficient = level > slowEnvelope ? slowAttack : slowRelease;
+            fastEnvelope = fastEnvelope + (level - fastEnvelope) * fastCoefficient;
+            slowEnvelope = slowEnvelope + (level - slowEnvelope) * slowCoefficient;
+
+            float targetGain = 1.0f;
+            if (! isBypassed)
+            {
+                float ratio = fastEnvelope / (slowEnvelope + 0.0000001f);
+                targetGain = pow (max (min (ratio, 1.0f), 0.000001f), intensity);
+                targetGain = max (targetGain, minimumGain);
+            }
+
+            float gainCoefficient = targetGain < gainEnvelope ? gainAttack : gainRelease;
+            gainEnvelope = gainEnvelope + (targetGain - gainEnvelope) * gainCoefficient;
+            out <- sample * gainEnvelope;
+            advance();
+        }
+    }
+}

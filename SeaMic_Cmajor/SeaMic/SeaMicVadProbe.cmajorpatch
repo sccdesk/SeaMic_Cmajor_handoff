@@ -1,0 +1,16 @@
+{
+    "CmajorVersion":    1,
+    "ID":               "com.seatime.seamic-vadprobe",
+    "version":          "1.0",
+    "name":             "SeaMicVadProbe",
+    "description":      "VAD flag probe: speech flag as 440Hz beep for render analysis",
+    "category":         "effect",
+    "manufacturer":     "SeaTime",
+    "isInstrument":     false,
+
+    "source":  [
+        "chain1_filters.cmajor",
+        "chain2_vad.cmajor",
+        "chain6_vadprobe.cmajor"
+    ]
+}

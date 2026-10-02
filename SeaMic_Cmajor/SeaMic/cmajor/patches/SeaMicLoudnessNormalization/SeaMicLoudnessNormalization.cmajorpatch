@@ -1,0 +1,15 @@
+{
+    "CmajorVersion": 1,
+    "ID": "com.seatime.seamic.loudness-normalization",
+    "version": "1.0",
+    "name": "SeaMic Loudness Normalisation",
+    "description": "K-weighted loudness analysis and automatic gain control",
+    "category": "effect",
+    "manufacturer": "SeaTime",
+    "isInstrument": false,
+    "source": [
+        "SeaMicLoudnessNormalization.cmajor",
+        "../../../chain1_filters.cmajor",
+        "../../../chain3_agc_gate_limit.cmajor"
+    ]
+}

@@ -1,0 +1,88 @@
+// Probe F: value-endpoint vs plain-float hypothesis test.
+// Identical RMS window; only difference: threshold via `input value float`
+// with [[...]] annotation (like the ORIGINAL v1 VAD that once sang? — no,
+// v1 never rendered probes). If THIS sings and chain11 (plain float thresh +
+// init/floor lines) is silent, the killer is in the STATE DECLARATIONS or
+// the extra arithmetic (log10/pow), not the graph wiring.
+processor VADValueThresh
+{
+    input  stream float in;
+    output stream float speech;
+    input value float enterDb [[ name: "Enter dB", min: 3.0, max: 24.0, init: 9.0, step: 0.5 ]];
+    float[2048] ring;
+    int   winLen = 512;
+    int   pos = 0;
+    int   filled = 0;
+    float sumSq = 0.0f;
+    float isSpeech = 0.0f;
+    int   fsInit = 0;
+    void main()
+    {
+        float fs = float (processor.frequency);
+        if (fsInit == 0)
+        {
+            winLen = int (0.032f * fs);
+            if (winLen > 2048)
+                winLen = 2048;
+            if (winLen < 64)
+                winLen = 64;
+            fsInit = 1;
+        }
+        loop
+        {
+            float x = in;
+            float oldest = ring[pos];
+            sumSq = sumSq - oldest * oldest + x * x;
+            ring[pos] = x;
+            pos = pos + 1;
+            if (pos >= winLen)
+                pos = 0;
+            if (filled < winLen)
+                filled = filled + 1;
+            float rms = sqrt (sumSq / float (filled));
+            float rmsDb = 20.0f * log10 (rms + 0.0000001f);
+            if (isSpeech < 0.5f)
+            {
+                if (rmsDb > -40.0f)
+                    isSpeech = 1.0f;
+            }
+            speech <- isSpeech;
+            advance();
+        }
+    }
+}
+
+processor FlagBeepVal
+{
+    input  stream float speech;
+    output stream float out;
+    float phase = 0.0f;
+    void main()
+    {
+        float fs = float (processor.frequency);
+        float inc = 440.0f / fs;
+        loop
+        {
+            float sp = speech;
+            phase = phase + inc;
+            if (phase >= 1.0f)
+                phase = phase - 1.0f;
+            out <- sin (phase * float (twoPi)) * sp * 0.5f;
+            advance();
+        }
+    }
+}
+
+graph SeaMicValueProbe [[ main ]]
+{
+    input  stream float in;
+    output stream float out;
+    node vad = VADValueThresh;
+    node bp  = FlagBeepVal;
+    connection
+    {
+        in -> vad.in;
+        vad.speech -> bp.speech;
+        bp.out -> out;
+    }
+}

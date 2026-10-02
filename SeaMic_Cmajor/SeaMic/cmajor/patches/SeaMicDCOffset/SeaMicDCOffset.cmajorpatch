@@ -1,0 +1,14 @@
+{
+    "CmajorVersion": 1,
+    "ID": "com.seatime.seamic.dc-offset",
+    "version": "1.0",
+    "name": "SeaMic DC Offset Removal",
+    "description": "Stereo DC removal for microphone and far-end reference signals",
+    "category": "effect",
+    "manufacturer": "SeaTime",
+    "isInstrument": false,
+    "source": [
+        "SeaMicDCOffset.cmajor",
+        "../../modules/dsp/DCOffsetRemoval.cmajor"
+    ]
+}

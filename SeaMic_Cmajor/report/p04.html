@@ -1,0 +1,71 @@
+<h2 id="ch2" class="newpage">2. Theoretical Framework</h2>
+
+<h3>2.1 Loudness measurement: ITU-R BS.1770 and EBU R128</h3>
+<p>The modern standard for perceived loudness is ITU-R BS.1770 <b>[1]</b>, adopted by the European
+Broadcasting Union as R128 <b>[2]</b>. Its core idea is that a sound pressure level in dB SPL does not
+correspond to perceived loudness; the ear's non-flat frequency response must be modelled before
+measuring mean-square energy. BS.1770 therefore filters the signal with a two-stage <i>K-weighting</i>
+filter and computes a gated mean square:</p>
+<div class="eq">
+L<sub>K</sub> = &minus;0.691 + 10&thinsp;log<sub>10</sub>&thinsp;(&Sigma;<sub>i</sub> G<sub>i</sub> &middot; z<sub>i</sub>)&ensp;,&emsp; z<sub>i</sub> = (1/T) &int; y<sub>K</sub><sup>2</sup>(t)&thinsp;dt
+</div>
+<p>where <i>G<sub>i</sub></i> are channel weights (1.0 for mono) and <i>y<sub>K</sub></i> is the
+K-weighted signal. R128 defines three integration windows: Momentary (400&nbsp;ms), Short-term (3&nbsp;s)
+and Integrated (whole programme with two-stage gating at &minus;70&nbsp;LUFS absolute and
+&minus;10&nbsp;LU relative thresholds). The reference level is &minus;23&nbsp;LUFS.</p>
+
+<div class="callout">
+<b>Critical observation (design argument #1).</b> R128 as specified is a <i>measurement</i> standard
+for broadcast programme delivery, not a control law for a live microphone. Its windows (400&nbsp;ms /
+3&nbsp;s / infinite) are far too slow for conversational gain riding, and &minus;23&nbsp;LUFS is far
+too quiet for a communication channel where intelligibility and presence matter. Blindly closing the
+loop around Momentary loudness would produce audible pumping and late gain rides; the Integrated
+gated estimator is unusable online. The conclusion adopted in this project: <b>reuse the K-weighting
+perception model of BS.1770, but not its time integration or target</b> — use fast per-frame
+measurement with a comms-oriented target of &minus;19&nbsp;dBFS K-weighted RMS and
+telephony-style AGC ballistics.
+</div>
+
+<h3>2.2 K-weighting at 16&nbsp;kHz — re-deriving instead of porting</h3>
+<p>BS.1770 publishes its biquad coefficients only for 48&nbsp;kHz. A naïve port to SeaTime's
+16&nbsp;kHz would be wrong: bilinear-transformed coefficients are strictly rate-dependent. However,
+the published coefficients are merely the digital images of an analog prototype, and the analog
+parameters are also given (or recoverable) <b>[3]</b>:</p>
+<table>
+<tr><th>Stage</th><th>Prototype</th><th>Analog parameters</th><th>Role</th></tr>
+<tr><td>1 — Pre-filter</td><td>High shelf</td><td>f<sub>0</sub> = 1681.974&nbsp;Hz, G = +3.985&nbsp;dB, Q = 0.7071 (S = 1/√2)</td><td>Models the +4&nbsp;dB acoustic-ear resonance above ~1.7&nbsp;kHz</td></tr>
+<tr><td>2 — RLB filter</td><td>High-pass</td><td>f<sub>0</sub> = 38.13&nbsp;Hz (41.9&nbsp;Hz in some revisions), Q = 0.5</td><td>Removes sub-audible / DC energy (weighting curve returns to 0&nbsp;dB)</td></tr>
+</table>
+<p>Because the prototypes are known, the correct procedure at any sampling rate is to <b>re-apply the
+RBJ audio-EQ cookbook bilinear transforms [4] to the analog specifications at the actual
+<code>processor.frequency</code></b>, rather than copying constants. The implementation computes the
+coefficients at runtime in the first frame:</p>
+<div class="eq">
+A = 10<sup>G/40</sup>; &ensp; &omega;<sub>0</sub> = 2&pi; f<sub>0</sub>/f<sub>s</sub>; &ensp;
+&alpha;<sub>shelf</sub> = sin&thinsp;&omega;<sub>0</sub>/2 &middot; &radic;[(A + 1/A)(1/S &minus; 1) + 2]
+</div>
+<p>and the shelf/high-pass difference equations are the standard RBJ forms normalised by
+<i>a</i><sub>0</sub>. At 16&nbsp;kHz the shelf coefficient is comfortably far from the Nyquist
+frequency (1682&nbsp;Hz ≪ 8000&nbsp;Hz), so bilinear warping is small and accuracy is within a
+fraction of a dB of the 48&nbsp;kHz reference design. The RLB stage was instantiated at 60&nbsp;Hz
+Q&nbsp;=&nbsp;0.5 (the conservative published variant), which is inaudible for speech but effectively
+kills DC and rumble — an intentional deviation documented in §5.2.</p>
+
+<h3>2.3 Automatic Gain Control as a servo loop</h3>
+<p>An AGC is a feedback (or feed-forward) control loop that manipulates a variable gain so that a
+measured level tracks a reference. Writing the measured level in dB as <i>&#8467;(t)</i> and the
+target as <i>&#8467;<sub>T</sub></i>, the classical form is:</p>
+<div class="eq">
+g<sub>dB</sub>(t+1) = g<sub>dB</sub>(t) + &mu; &middot; [ &#8467;<sub>T</sub> &minus; (&#8467;(t) + g<sub>dB</sub>(t)) ]
+</div>
+<p>with step size &mu; derived from time constants: &mu; = 1 &minus; e<sup>&minus;1/(&tau;f<sub>s</sub>)</sup>.
+Two properties matter in practice:</p>
+<ul>
+<li><b>Asymmetric ballistics.</b> Gain must fall quickly when someone shouts (attack, here 80&nbsp;ms)
+but rise slowly when the talker stops (release, here 1.5&nbsp;s), otherwise the loop amplifies
+silence between words — the classic "pumping" artefact.</li>
+<li><b>Freezing.</b> Updating the loop while the input is not speech guarantees drift: the loop will
+always drive <i>whatever is present</i> (noise, hum) toward the target. Coupling the update to a VAD
+flag converts the AGC from a leveler of everything into a leveler of <b>speech only</b> — the key
+decision that makes a single global target viable.</li>
+</ul>

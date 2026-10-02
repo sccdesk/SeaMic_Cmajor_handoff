@@ -1,0 +1,12 @@
+{
+    "CmajorVersion":    1,
+    "ID":               "com.seatime.seamic-levelprobe",
+    "version":          "1.0",
+    "name":             "SeaMicLevelProbe",
+    "description":      "RMS level tap: proves input + window machinery",
+    "category":         "effect",
+    "manufacturer":     "SeaTime",
+    "isInstrument":     false,
+
+    "source":  [ "chain10_levelprobe.cmajor" ]
+}

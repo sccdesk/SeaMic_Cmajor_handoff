@@ -1,0 +1,14 @@
+{
+    "CmajorVersion": 1,
+    "ID": "com.seatime.seamic.look-ahead-limiter",
+    "version": "1.0",
+    "name": "SeaMic Look-Ahead Limiter",
+    "description": "Five millisecond look-ahead peak limiter",
+    "category": "effect",
+    "manufacturer": "SeaTime",
+    "isInstrument": false,
+    "source": [
+        "SeaMicLookAheadLimiter.cmajor",
+        "../../../chain3_agc_gate_limit.cmajor"
+    ]
+}

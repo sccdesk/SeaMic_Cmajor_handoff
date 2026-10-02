@@ -1,0 +1,81 @@
+<h2 id="ch6" class="newpage">6. Development Log: Mistakes, Observations and Corrections</h2>
+<p>This chapter is deliberately candid: an end-of-year record is only useful if it preserves the
+failures. Each entry follows the same structure — <i>symptom → hypothesis → probe → root cause →
+fix → verification</i> — because that is the procedure that actually recovered the project
+(Figure 5 in §6.9).</p>
+
+<div class="mistake">
+<b class="tag">M1 — Language syntax: array declarations and the assignment operator</b>
+<b>Symptom.</b> First dry-runs failed to compile: <code>error: Found "[" when expecting ";"</code> on
+<code>float ring[512];</code>, later <code>Found "&lt;-" when expecting ";"</code> on
+<code>float x &lt;- in;</code>.<br>
+<b>Root cause.</b> Cmajor declares fixed arrays size-first (<code>float[512] ring;</code>) — the C
+order is invalid; and <code>&lt;-</code> is reserved for <i>writing output streams</i>
+(<code>out &lt;- v;</code>), while state and locals use plain <code>=</code>, including <i>reading</i>
+streams (<code>float x = in;</code>).<br>
+<b>Fix.</b> Corrected all declarations/assignments; recorded the rules in the session README before
+writing further code.<br>
+<b>Verification.</b> <code>cmaj play --dry-run</code> → <code>Loaded: …</code>.
+</div>
+
+<div class="mistake">
+<b class="tag">M2 — Hoisted value endpoints are uninitialised under headless render</b>
+<b>Symptom.</b> The graph declared <code>input vad.enterDb;</code> / <code>input vad.exitDb;</code>
+hoisted from the VAD's <code>input value float … [[init: 9.0]]</code> endpoints. In the GUI player
+the defaults apply; under <code>cmaj render</code> there is no controller to deliver them, so the
+endpoints can read 0 — making enter&nbsp;=&nbsp;exit&nbsp;=&nbsp;0, which collapses the hysteresis
+(noise enters instantly, exit fires instantly). A related edit also produced
+<code>Cannot find symbol 'enterDb'</code> when the node endpoint name didn't exist.<br>
+<b>Probe.</b> Compile-and-render attempts of the probe patches; one hypothesis test
+(<code>SeaMicValueProbe</code>) contrasted a value-endpoint threshold against a plain float.<br>
+<b>Root cause.</b> Endpoint delivery model: value endpoints are driven from the host, not self-started.<br>
+<b>Fix.</b> VAD thresholds became plain state floats (<code>enterDb = 9.0f; exitDb = 4.0f;</code>)
+inside <code>chain2</code>; only AGC knobs (whose host defaults are safe) remain hoisted. A graph-level
+<code>node vad = VAD(9.0f,4.0f)</code> attempt also failed — VAD declares no specialisation
+parameters — confirming the thresholds belong to state, not template arguments.<br>
+<b>Verification.</b> All three production patches compile warning-free and render identically with
+or without GUI.
+</div>
+
+<div class="mistake">
+<b class="tag">M3 — Phantom-SNR at boot: the floor initialised below reality (most serious DSP bug)</b>
+<b>Symptom.</b> Offline renders of chain v1 (measured before the analyzer bug M7 was known — treat
+magnitudes as indicative) showed inverted behaviour in both directions: <b>false-on at boot</b> —
+the detector latched "speech" during the first all-noise second and the AGC, believing speech,
+adapted its full +30&nbsp;dB range on noise, which then leaked through the open gate (noise segments
+emerging at speech-like level); and <b>false-off on the quiet talker</b> — the −34&nbsp;dBFS quiet
+speech failed to hold detection and came out heavily attenuated.<br>
+<b>Evidence (solid — independent tool).</b> A per-100&nbsp;ms SNR/floor trace of the stimulus
+(<code>vadprobe</code>, which reads the 16-bit stimulus directly and was unaffected by M7) showed the
+floor sitting at its −80&nbsp;dBFS initialisation while the seg0 noise measured −54.8&nbsp;dBFS: a
+<b>+25&nbsp;dB phantom SNR on pure noise at t&nbsp;=&nbsp;0</b>, far above the 12&nbsp;dB enter
+threshold. Worse, the v1 floor was allowed to <i>rise</i> with an upward leak, so during the quiet
+speech it drifted up toward the speech level, SNR collapsed to ~0&nbsp;dB, and detection exited and
+stayed off — while the boot false-on had already frozen sub-block updates (they were gated on
+speech-presence, M4), leaving a corrupted reference for the rest of the file.<br>
+<b>Root cause.</b> Initialising a minima-tracker <i>below</i> the expected floor plus allowing it to
+rise creates guaranteed false triggers at power-on — the stakeholder's predicted weakness of
+threshold heuristics, realised in our own code.<br>
+<b>Fix.</b> Boot the floor <b>at the −40&nbsp;dBFS cap</b> and make it <b>lower-only for life</b>
+(boot: instant-min track downward; runtime: minimum over the sliding window). Real floors
+(−50&nbsp;dBFS and below) are now always reached <i>by falling</i>; SNR on noise at boot is ≤&nbsp;0&nbsp;dB.<br>
+<b>Verification.</b> Re-render: seg0/seg6 noise no longer enters; quiet-speech segments open.
+</div>
+
+<div class="mistake">
+<b class="tag">M4 — Sub-block rotation frozen during speech</b>
+<b>Symptom.</b> Even after M3's fix the flag-beep probe opened only from seg3 onward (quiet speech in
+seg1–2 stayed dark in early probe runs).<br>
+<b>Hypothesis → probe.</b> With M7 excluded at that time, the bisect pointed at estimator state
+evolution. Inspection of the rotation block showed the whole 1&nbsp;s sub-block rotation wrapped in
+<code>if (isSpeech &lt; 0.5)</code>: on a speech onset, rotation stopped until speech ended, so the
+3&nbsp;s window could not slide, <code>curSubMin</code> never reset correctly, and a stale floor
+persisted for up to 3&nbsp;s after each utterance.<br>
+<b>Root cause.</b> Conflating two different policies: <i>speech must not contribute new minima</i> —
+true — with <i>the window must not slide during speech</i> — false.<br>
+<b>Fix.</b> Rotate always; in the speech branch substitute the current floor for the sub-block
+minimum (<code>subMinA = noiseFloor</code>), which carries the last known noise estimate forward
+without letting speech write into it (Figure 4).<br>
+<b>Verification.</b> Probe rendering shows the window refreshing across segment boundaries; no more
+multi-second stale-floor episodes.
+</div>

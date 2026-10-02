@@ -1,0 +1,59 @@
+// SeaTime SeaMicChain. Part 4/4: graph wiring (mono 16kHz).
+// NOTE 29/09: VAD/gate tuning lives in chain2/chain3 as `input event float32`
+// endpoints (SNR thresholds, hangover, gate hold, gate depth). This composite
+// graph does NOT hoist them, so offline renders keep the processor defaults;
+// the web console (SeaMicNoiseGateVAD) hoists and drives them in real time.
+graph SeaMicChain [[ main ]]
+{
+    input  stream float in;
+    output stream float out;
+    output stream float vadFlag;
+    output stream float agcGainDb;
+
+    input agc.targetDb;
+    input agc.maxGainDb;
+    input agc.minGainDb;
+    input event float32 bypassDcFilters [[ name: "Bypassed (ON = dry signal)", init: 1, boolean ]];
+    input kw.bypassKWeight;
+    input vad.bypassVad;
+    input dereverb.amount;
+    input dereverb.bypassDeReverb;
+    input gate.bypassGate;
+    input agc.bypassAGC;
+    input tone.drive;
+    input tone.asymmetry;
+    input tone.makeupDb;
+    input tone.bypassTone;
+    input limit.bypassLimiter;
+
+    node dc    = DCOffsetRemoval;
+    node kw    = KWeight;
+    node vad   = VAD;
+    node dereverb = DeReverb;
+    node gate  = SoftGate;
+    node agc   = AGC;
+    node tone  = Tone;
+    node toneDc = DCOffsetRemoval;
+    node limit = Limiter;
+
+    connection
+    {
+        in -> dc.in;
+        bypassDcFilters -> dc.bypassDc;
+        bypassDcFilters -> toneDc.bypassDc;
+        dc.out -> dereverb.in;
+        dereverb.out -> kw.in;
+        dereverb.out -> gate.in;
+        gate.out -> agc.in;
+        agc.out -> tone.in;
+        tone.out -> toneDc.in;
+        toneDc.out -> limit.in;
+        limit.out -> out;
+        kw.out -> vad.in;
+        kw.out -> agc.side;
+        vad.speech -> agc.speech;
+        vad.speech -> gate.speech;
+        vad.speech -> vadFlag;
+        agc.gainDbOut -> agcGainDb;
+    }
+}

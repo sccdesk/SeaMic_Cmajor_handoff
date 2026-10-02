@@ -1,0 +1,15 @@
+{
+    "CmajorVersion":    1,
+    "ID":               "com.seatime.seamic-rawprobe",
+    "version":          "1.0",
+    "name":             "SeaMicRawProbe",
+    "description":      "VAD raw probe: stimulus straight into VAD, no filters",
+    "category":         "effect",
+    "manufacturer":     "SeaTime",
+    "isInstrument":     false,
+
+    "source":  [
+        "chain2_vad.cmajor",
+        "chain8_rawprobe.cmajor"
+    ]
+}

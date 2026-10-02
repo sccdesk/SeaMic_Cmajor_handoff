@@ -1,0 +1,15 @@
+{
+    "CmajorVersion": 1,
+    "ID": "com.seatime.seamic-aec",
+    "version": "1.0",
+    "name": "SeaMic AEC",
+    "description": "NLMS echo canceller with an external far-end reference input",
+    "category": "effect",
+    "manufacturer": "SeaTime",
+    "isInstrument": false,
+    "source": [
+        "SeaMicAEC.cmajor",
+        "../../modules/aec/SeaMicAEC.cmajor",
+        "../../modules/dsp/DCOffsetRemoval.cmajor"
+    ]
+}

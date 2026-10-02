@@ -1,0 +1,49 @@
+<h3>2.5 Soft gating vs. hard muting</h3>
+<p>A hard gate (multiply by 0 below threshold) creates discontinuities — clicks — and interacts badly
+with Opus discontinuous transmission (DTX): the encoder's comfort-noise generator expects a
+<i>quieted</i> signal, not digital silence, and a hard edge produces spectral splatter. A
+<b>downward expander</b> applied <i>after</i> the gain stage attenuates toward a floor
+(here a maximum of &minus;10&nbsp;dB) with a fast 10&nbsp;ms close and 150&nbsp;ms release. The
+residual background below the gate is then steady and low, which Opus encodes cheaply, while the
+audible effect reads as natural dropout rather than a switch.</p>
+
+<h3>2.6 Look-ahead peak limiting</h3>
+<p>Compressors and AGCs operate on smoothed (RMS / mean-square) descriptors because they shape
+<i>loudness</i>. Limiters protect against <i>peaks</i>, which are exactly the outliers that smoothing
+hides; therefore a limiter must work sample-by-sample on |x| with a look-ahead delay line so the gain
+reduction is already in place when the peak arrives:</p>
+<div class="eq">
+p[n] = max(|x[n]|, &beta;&thinsp;p[n&minus;1]), &ensp; g[n] = min(1, C / p[n]), &ensp; y[n] = g[n] &middot; x[n&minus;D]
+</div>
+<p>with ceiling C = 10<sup>&minus;1/20</sup> ≈ 0.891 (&minus;1&nbsp;dBFS), look-ahead D = 64 samples
+(4&nbsp;ms at 16&nbsp;kHz), release &beta; = e<sup>&minus;1/(0.08 f<sub>s</sub>)</sup> (80&nbsp;ms).
+This guarantees |y| ≤ C on every sample while keeping the gain envelope inaudible. The stakeholder
+question — <i>"individual samples or RMS?"</i> — is answered: <b>samples</b>, because the failure
+mode being prevented (clipping into the codec) is a per-sample phenomenon; RMS limiting would let
+isolated transients through (design argument #3).</p>
+
+<h3>2.7 Chain ordering — the central architectural argument</h3>
+<p>The original instinct of the product team was <i>threshold first, then normalise</i>. Analysis
+showed this inverts the correct order:</p>
+<ul>
+<li>Normalising after gating measures a chopped signal: 400&nbsp;ms windows fill with zeros and the
+gain servo hunts.</li>
+<li>The gate threshold then has to track both noise-floor drift <i>and</i> talker distance,
+compounding two unknowns.</li>
+<li>Applying gain after a hard gate re-introduces discontinuities post-gain.</li>
+</ul>
+<p>The adopted topology is a <b>sidechain split</b>: measurement (K-weighted energy, VAD) taps the
+signal <i>before</i> any gain, while gain and gate are <i>applied</i> in series on the audio path, and
+the VAD freezes the AGC <i>update</i> rather than muting the audio. In one sentence:
+<b>measure pre-gain, apply pre-gate, update only on speech</b>. The limiter sits last because its
+contract (|y| ≤ C) must hold for the final signal only.</p>
+
+<h3>2.8 Alternatives considered and rejected</h3>
+<table>
+<tr><th>Alternative</th><th>Argument for</th><th>Why rejected</th></tr>
+<tr><td>Bimodality test on a 3&nbsp;s energy histogram (Otsu / 2-means)</td><td>Adaptive, no fixed dB threshold</td><td>Fails at the edges: all-noise windows find two modes <i>in noise</i>; all-speech windows collapse to one and drift upward; adds ~3&nbsp;s latency at call start. Retained only as a possible slow initialiser (the stakeholder's original concern was vindicated as a real failure mode — §6, M3)</td></tr>
+<tr><td>Literal EBU R128 closed loop</td><td>Standardised, battle-tested</td><td>Windows too slow; &minus;23&nbsp;LUFS wrong target for comms; only the K-weighting model is reusable (§2.1)</td></tr>
+<tr><td>RNNoise / WebRTC DNN VAD</td><td>Best-in-class robustness</td><td>Model size + frame-cadence constraints; overkill for stationary noise (§2.4)</td></tr>
+<tr><td>Normalise before gating</td><td>Gate would see normalised levels</td><td>Gate then chops louder audio (louder clicks); measurement is pre-gain anyway — no benefit</td></tr>
+<tr><td>RMS-window limiter</td><td>Matches loudness perception</td><td>Smooths the very outliers that clip the codec (§2.6)</td></tr>
+</table>

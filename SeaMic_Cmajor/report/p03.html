@@ -1,0 +1,63 @@
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><b>1. Introduction and Problem Statement</b> — 1.1 Context &middot; 1.2 Requirements &middot; 1.3 Objectives &middot; 1.4 Summary of contributions</li>
+    <li><b>2. Theoretical Framework</b> — 2.1 BS.1770 / EBU R128 &middot; 2.2 K-weighting at 16&nbsp;kHz &middot; 2.3 AGC servo loops &middot; 2.4 VAD &amp; min-statistics &middot; 2.5 Gate vs. expander &middot; 2.6 Look-ahead limiting &middot; 2.7 Chain-ordering argument &middot; 2.8 Alternatives considered</li>
+    <li><b>3. Technology Stack</b></li>
+    <li><b>4. Methodology and Test Bench</b></li>
+    <li><b>5. System Design and Implementation</b> — 5.1 Architecture &middot; 5.2 Stage design &middot; 5.3 Parameters &middot; 5.4 Patch organisation</li>
+    <li><b>6. Development Log: Mistakes, Observations, Corrections (M1–M8)</b></li>
+    <li><b>7. Results and Discussion</b></li>
+    <li><b>8. Conclusions and Future Work</b></li>
+    <li><b>9. References</b></li>
+    <li><b>Appendix A. Repository inventory &middot; Appendix B. Reproduction commands</b></li>
+  </ol>
+</div>
+
+<h2 id="ch1">1. Introduction and Problem Statement</h2>
+
+<h3>1.1 Context</h3>
+<p>SeaTime is a meeting application in which audio is encoded with the Xiph Opus codec at a 16&nbsp;kHz
+sampling rate (speech band). The microphone path previously exposed two sliders to the end user —
+<i>microphone gain</i> and <i>activation threshold</i> — plus a one-second shutoff hysteresis based on
+instantaneous RMS. User research against mainstream competitors (Microsoft Teams, Zoom) showed that
+these controls are never touched by average users, who nevertheless suffer when the defaults are wrong:
+distant or quiet talkers disappear, and background noise opens the gate and gets amplified.</p>
+
+<p>The product decision was therefore to <b>remove both sliders</b> and move all adaptation
+automatically into the DSP: an adaptive activation threshold and an online loudness-normalisation
+stage. This report documents how that requirement was translated into a concrete signal chain, how the
+chain was implemented and validated, and — because a faithful engineering record must include failure —
+every significant mistake made along the way and the evidence-driven procedure used to correct it.</p>
+
+<h3>1.2 Requirements</h3>
+<table>
+<tr><th>#</th><th>Requirement</th><th>Acceptance criterion</th></tr>
+<tr><td>R1</td><td>No user-facing gain or threshold controls on the happy path</td><td>Chain adapts autonomously; only an optional "auto-adjust" toggle remains</td></tr>
+<tr><td>R2</td><td>Adaptive activation threshold robust to varying noise floors</td><td>VAD opens on speech ≥ 9&nbsp;dB above the estimated floor, closes at 4&nbsp;dB, holds 600&nbsp;ms</td></tr>
+<tr><td>R3</td><td>Online loudness normalisation for speech</td><td>Speech rides toward &minus;19&nbsp;dBFS; gain frozen during silence</td></tr>
+<tr><td>R4</td><td>No clipping into Opus</td><td>Sample-peak ≤ &minus;1&nbsp;dBFS on every rendered sample</td></tr>
+<tr><td>R5</td><td>No chopped syllables (longer hold, per stakeholder request)</td><td>600&nbsp;ms VAD hangover + 400&nbsp;ms gate hold past VAD exit</td></tr>
+<tr><td>R6</td><td>Bounded footprint — no DNN dependency</td><td>Code-only implementation, no RNNoise-class model</td></tr>
+<tr><td>R7</td><td>Sample-rate independence around 16&nbsp;kHz</td><td>All coefficients and windows derived from <code>processor.frequency</code></td></tr>
+</table>
+
+<h3>1.3 Objectives</h3>
+<ul>
+<li><b>Main objective:</b> deliver a compilable, real-time-capable Cmajor patch implementing the full
+adaptive chain (DC → K-weight → VAD → AGC → gate → limiter), verified offline by rendering and
+online by live microphone playback.</li>
+<li><b>Secondary objectives:</b> build a reusable offline test bench (stimulus generator + segment
+analyzer + probe patches); document the design arguments that resolved contested architectural
+questions; produce this report as the durable record of the iteration.</li>
+</ul>
+
+<h3>1.4 Summary of contributions</h3>
+<ol>
+<li>Sidechain-split chain architecture with the <i>measure-pre-gain / apply-pre-gate</i> ordering.</li>
+<li>A rate-agnostic min-statistics VAD (cap-booted, lower-only floor, 3×1&nbsp;s sliding minima,
+hysteresis, hangover, flatness exit) tuned for 16&nbsp;kHz speech.</li>
+<li>A probe-based bisect methodology (nine probe patches) that separated engine quirks, tooling bugs
+and genuine DSP defects — and the discovery that the offline analyzer itself was misparsing rendered files.</li>
+<li>A verified live MVP on real WASAPI hardware plus a documented manual test protocol.</li>
+</ol>

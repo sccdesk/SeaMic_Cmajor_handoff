@@ -1,0 +1,12 @@
+{
+    "CmajorVersion":    1,
+    "ID":               "com.seatime.seamic-passprobe",
+    "version":          "1.0",
+    "name":             "SeaMicPassProbe",
+    "description":      "Always-speech probe: isolates flag path from VAD logic",
+    "category":         "effect",
+    "manufacturer":     "SeaTime",
+    "isInstrument":     false,
+
+    "source":  [ "chain9_passprobe.cmajor" ]
+}

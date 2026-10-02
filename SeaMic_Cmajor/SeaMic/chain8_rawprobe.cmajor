@@ -1,0 +1,37 @@
+// Probe B: identical chain to chain6 but WITHOUT DCBlock+KWeight
+// (raw stimulus straight into VAD). Tells us whether the sidechain
+// filters are implicated in the silence.
+processor FlagBeepRaw
+{
+    input  stream float speech;
+    output stream float out;
+    float phase = 0.0f;
+    void main()
+    {
+        float fs = float (processor.frequency);
+        float inc = 440.0f / fs;
+        loop
+        {
+            float sp = speech;
+            phase = phase + inc;
+            if (phase >= 1.0f)
+                phase = phase - 1.0f;
+            out <- sin (phase * float (twoPi)) * sp * 0.5f;
+            advance();
+        }
+    }
+}
+
+graph SeaMicRawProbe [[ main ]]
+{
+    input  stream float in;
+    output stream float out;
+    node vad = VAD;
+    node bp  = FlagBeepRaw;
+    connection
+    {
+        in -> vad.in;
+        vad.speech -> bp.speech;
+        bp.out -> out;
+    }
+}

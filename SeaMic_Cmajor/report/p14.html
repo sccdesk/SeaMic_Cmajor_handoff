@@ -1,0 +1,69 @@
+<h2 id="ch7" class="newpage">7. Results and Discussion</h2>
+
+<h3>7.1 Offline validation (final code, corrected analyzer)</h3>
+<p>Command: <code>cmaj render SeaMic.cmajorpatch --rate=16000 --blockSize=128
+--input=stimulus16k.wav --output=render_final.wav</code>, measured with <code>anwav2</code>.
+Segment duration 1&nbsp;s; all values dBFS RMS of channel 0 (the engine duplicates mono→stereo).</p>
+
+<table>
+<tr><th>Seg</th><th>Content</th><th>Input</th><th>Chain output</th><th>Δ</th><th>Interpretation</th></tr>
+<tr><td class="num">0</td><td>noise −50 dB</td><td class="num">−54.8</td><td class="num">−120.0</td><td class="num">—</td><td>engine warm-up black (M8) — excluded</td></tr>
+<tr><td class="num">1</td><td>quiet speech</td><td class="num">−34.4</td><td class="num"><b>−34.0</b></td><td class="num">+0.4</td><td>gate opens, transparent pass-through (AGC still at 0 dB)</td></tr>
+<tr><td class="num">2</td><td>quiet speech + transient</td><td class="num">−33.9</td><td class="num"><b>−28.4</b></td><td class="num">+5.5</td><td>AGC riding up toward target; transient harmless</td></tr>
+<tr><td class="num">3</td><td>noise −40 dB</td><td class="num">−44.8</td><td class="num">−36.0</td><td class="num">+8.8</td><td>≈1 s hold leak (hangover+gate release), then closed</td></tr>
+<tr><td class="num">4</td><td>loud speech</td><td class="num">−10.4</td><td class="num"><b>−14.0</b></td><td class="num">−3.6</td><td>fast pull-down; normalised near target</td></tr>
+<tr><td class="num">5</td><td>loud speech</td><td class="num">−10.4</td><td class="num"><b>−15.3</b></td><td class="num">−4.9</td><td>continues toward −19 dBFS as release integrates</td></tr>
+<tr><td class="num">6</td><td>noise −50 dB</td><td class="num">−54.8</td><td class="num">−40.2</td><td class="num">+14.6</td><td>hangover/hold leak of held gain; gate then closes</td></tr>
+</table>
+
+<table>
+<tr><th>Global metric</th><th>Result</th><th>Criterion</th><th>Status</th></tr>
+<tr><td>Samples strictly above 0 dBFS</td><td class="num">0</td><td class="num">0 (R4)</td><td>✅</td></tr>
+<tr><td>True peak (float)</td><td class="num">0.936</td><td class="num">≤ 1.0</td><td>✅</td></tr>
+<tr><td>Loud-speech level</td><td class="num">−14.0 … −15.3 dBFS</td><td>→ −19 target</td><td>≈ 4–5 dB short (see discussion)</td></tr>
+<tr><td>Quiet speech transparency</td><td>passes at +0.4 dB</td><td>no chopping (R5)</td><td>✅</td></tr>
+<tr><td>Patch compile</td><td>0 errors, 0 warnings</td><td>clean</td><td>✅</td></tr>
+</table>
+
+<h3>7.2 VAD flag probe (behaviour of the decision itself)</h3>
+<p>The flag was rendered as a 440&nbsp;Hz beep at 0.5 amplitude (full-on = −9.03&nbsp;dBFS segment
+RMS):</p>
+<table>
+<tr><th>Seg</th><th>1 quiet sp.</th><th>2 quiet sp.</th><th>3 noise</th><th>4 loud</th><th>5 loud</th><th>6 noise</th></tr>
+<tr><td>Beep RMS</td><td class="num">−12.2</td><td class="num">−9.0 (full)</td><td class="num">−11.1</td><td class="num">−9.0 (full)</td><td class="num">−9.0 (full)</td><td class="num">−11.0</td></tr>
+<tr><td>Reads as</td><td>opens into the burst</td><td>held open</td><td>~partial duty (exit + 600 ms hold)</td><td>held open</td><td>held open</td><td>~partial duty (hangover tail)</td></tr>
+</table>
+<p>Interpretation: the detector is <b>fully open on both quiet and loud speech</b>, and the partial
+segments are the designed hold windows, not chatter — exactly the "longer hold" behaviour requested
+(R5), with its documented cost (§7.4).</p>
+
+<h3>7.3 Live MVP verification (real hardware)</h3>
+<pre>Audio API: WASAPI, Output device: Headphones (ZOOM F Series Multi Track Audio),
+Input device: Microphone (ZOOM F Series Multi Track Audio), Rate: 16000Hz,
+Block size: 256 frames, Output channels: 1, Input channels: 1
+Loading: SeaMicLive.cmajorpatch  →  Loaded: SeaMicLive   [runs until stopped]</pre>
+<p>The live patch opened the real microphone and headphone devices at the product's 16&nbsp;kHz with
+a 256-frame block (16&nbsp;ms), loaded without errors or warnings, and sustained the audio callback
+for the duration of the smoke test. A structured listening protocol for the full behavioural matrix
+(silence, quiet talker, pauses, clap, fan noise, monologue) is documented in
+<code>SeaMic/MIC_TEST.md</code> for the human evaluation pass.</p>
+
+<h3>7.4 Discussion</h3>
+<ul>
+<li><b>Hold leak vs. chopping is a genuine trade-off.</b> The stakeholder explicitly requested longer
+hold; the measured price is ≈ 1&nbsp;s of background (seg3 +8.8&nbsp;dB, seg6 +14.6&nbsp;dB vs.
+input) after each utterance. Both knobs are single constants (<code>hangTime</code>,
+<code>holdExtraTime</code>) and can be dialled per product taste; a DNN VAD (§2.4) is the principled
+way to shrink the leak without reintroducing chopping.</li>
+<li><b>Loud-speech target overshoot (−14 vs −19).</b> The servo error uses K-weighted 32&nbsp;ms RMS
+while the table reports broadband segment RMS; the two differ by several dB on speech-like spectra,
+and the 1.5&nbsp;s release never fully settles inside a 2&nbsp;s burst. For a communication channel
+this lands <i>louder</i> than target — safe (limiter guarantees no clip) but worth calibrating
+against a K-weighted measurement when the chain is ported to SeaTime.</li>
+<li><b>Quiet-speech AGC ride is slow by design.</b> seg1 passes at unity because the release time
+constant exceeds the burst length. Long talkers benefit; two-second asides do not. A dual-rate
+release (fast catch when error &gt; 10&nbsp;dB, slow otherwise) is the standard remedy — future work.</li>
+<li><b>Measurement trust.</b> The single largest schedule risk was not DSP knowledge but instrument
+validity (M7). The final process invariant — <i>every claim needs a number from a decoder whose
+format handling has been verified against a header dump</i> — is now part of the bench.</li>
+</ul>

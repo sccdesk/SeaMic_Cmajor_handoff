@@ -1,0 +1,20 @@
+// Probe G: SNR TRACE — VAD.debugSnr (dB) scaled 0.025 per dB -> DC wire.
+// Analyzer RMS per segment = avg SNR in dB (0..40 mapped to 0..1 -> dBFS=20log10).
+// seg RMS of 0.5 = SNR 20 dB. Reads the decision variable directly.
+graph SeaMicSnrProbe [[ main ]]
+{
+    input  stream float in;
+    output stream float out;
+
+    node dc  = DCBlock;
+    node kw  = KWeight;
+    node vad = VAD;
+
+    connection
+    {
+        in -> dc.in;
+        dc.out -> kw.in;
+        kw.out -> vad.in;
+        kw.out -> out; // raw KWeight output: isolates filters from VAD window
+    }
+}

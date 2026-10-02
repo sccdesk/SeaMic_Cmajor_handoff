@@ -1,0 +1,218 @@
+// SeaTime SeaMicChain. Part 3/4: AGC (VAD-frozen servo) + SoftGate + Limiter.
+processor AGC
+{
+    input  stream float in;
+    input  stream float side;
+    input  stream float speech;
+    output stream float out;
+    output stream float gainDbOut;
+    input value float targetDb [[ name: "Target dBFS", min: -30.0, max: -6.0, init: -19.0, step: 0.5 ]];
+    input value float maxGainDb [[ name: "Max gain dB", min: 0.0, max: 40.0, init: 30.0, step: 1.0 ]];
+    input value float minGainDb [[ name: "Min gain dB", min: -24.0, max: 0.0, init: -12.0, step: 1.0 ]];
+    input event float32 bypassAGC [[ name: "Bypassed (ON = dry signal)", init: 1, boolean ]];
+    float[512] ring;
+    int   pos = 0;
+    int   filled = 0;
+    float sumSq = 0.0f;
+    float gainDb = 0.0f;
+    float appliedGain = 1.0f;
+    float speechSeen = 0.0f; // latch: have we ever seen speech? avoids pre-roll pump
+    bool isBypassed = true;
+
+    event bypassAGC (float32 value)
+    {
+        isBypassed = value > 0.5f;
+    }
+
+    void main()
+    {
+        float fs = float (processor.frequency);
+        float downCoeff = 1.0f - exp (-1.0f / (0.08f * fs));
+        float upCoeff = 1.0f - exp (-1.0f / (1.5f * fs));
+        float smoothDown = 1.0f - exp (-1.0f / (0.010f * fs));
+        float smoothUp = 1.0f - exp (-1.0f / (0.050f * fs));
+        loop
+        {
+            float x = in;
+            float s = side;
+            float sp = speech;
+            float oldest = ring.at(pos);
+            sumSq = max (0.0f, sumSq - oldest * oldest + s * s);
+            ring.at(pos) = s;
+            pos = pos + 1;
+            if (pos >= 512)
+                pos = 0;
+            if (filled < 512)
+                filled = filled + 1;
+            float rms = sqrt (sumSq / float (filled));
+            if (rms < 0.0000001f)
+                rms = 0.0000001f;
+            if (! isBypassed && sp > 0.5f)
+            {
+                speechSeen = 1.0f;
+                float errDb = targetDb - 20.0f * log10 (rms * appliedGain);
+                if (errDb < gainDb)
+                    gainDb = gainDb + (errDb - gainDb) * downCoeff;
+                else
+                    gainDb = gainDb + (errDb - gainDb) * upCoeff;
+                if (gainDb > maxGainDb)
+                    gainDb = maxGainDb;
+                if (gainDb < minGainDb)
+                    gainDb = minGainDb;
+            }
+            float target = pow (10.0f, gainDb / 20.0f);
+            if (! isBypassed && target < appliedGain)
+                appliedGain = appliedGain + (target - appliedGain) * smoothDown;
+            else if (! isBypassed)
+                appliedGain = appliedGain + (target - appliedGain) * smoothUp;
+            out <- isBypassed ? x : x * appliedGain;
+            gainDbOut <- isBypassed ? 0.0f : gainDb;
+            advance();
+        }
+    }
+}
+
+processor SoftGate
+{
+    input  stream float in;
+    input  stream float speech;
+    output stream float out;
+    input event float32 bypassGate [[ name: "Bypassed (ON = dry signal)", init: 1, boolean ]];
+    input event float32 gateDepthDb [[ name: "Gate depth", min: 0.0, max: 60.0, init: 30.0, step: 1.0 ]];
+    input event float32 gateHoldMs [[ name: "Gate hold after speech", min: 0.0, max: 1000.0, init: 150.0, step: 25.0 ]];
+    float att = 0.0f;
+    float holdExtra = 0.0f; // extra gate hold after VAD exit (longer hold)
+    float closeAttDb = 30.0f;
+    float holdTimeMs = 150.0f;
+    bool isBypassed = true;
+
+    event bypassGate (float32 value)
+    {
+        isBypassed = value > 0.5f;
+    }
+
+    event gateDepthDb (float32 value)
+    {
+        float v = value;
+        if (v < 0.0f)
+            v = 0.0f;
+        if (v > 60.0f)
+            v = 60.0f;
+        closeAttDb = v;
+    }
+
+    event gateHoldMs (float32 value)
+    {
+        float v = value;
+        if (v < 0.0f)
+            v = 0.0f;
+        if (v > 1000.0f)
+            v = 1000.0f;
+        holdTimeMs = v;
+    }
+
+    void main()
+    {
+        float fs = float (processor.frequency);
+        float attCoeff = 1.0f - exp (-1.0f / (0.030f * fs));
+        float relCoeff = 1.0f - exp (-1.0f / (0.150f * fs));
+        loop
+        {
+            float x = in;
+            float sp = speech;
+            float holdLimit = holdTimeMs * 0.001f * fs;
+            float want = 0.0f;
+            if (sp < 0.5f)
+            {
+                // hold the gate open for gateHoldMs after VAD drops
+                if (holdExtra < holdLimit)
+                    holdExtra = holdExtra + 1.0f;
+                else
+                    want = closeAttDb;
+            }
+            else
+            {
+                holdExtra = 0.0f;
+            }
+            if (want > att)
+                att = att + (want - att) * attCoeff;
+            else
+                att = att + (want - att) * relCoeff;
+            float g = pow (10.0f, -att / 20.0f);
+            out <- isBypassed ? x : x * g;
+            advance();
+        }
+    }
+}
+
+processor Limiter
+{
+    input  stream float in;
+    output stream float out;
+    input event float32 bypassLimiter [[ name: "Bypassed (ON = dry signal)", init: 1, boolean ]];
+    float[2048] audioDelayLine;
+    int   writePosition = 0;
+    int   delaySamples = 80;
+    int   peakHoldSamples = 0;
+    float peak = 0.0f;
+    float gainEnvelope = 1.0f;
+    bool isBypassed = true;
+
+    event bypassLimiter (float32 value)
+    {
+        isBypassed = value > 0.5f;
+    }
+
+    void main()
+    {
+        float fs = float (processor.frequency);
+        float ceilLin = pow (10.0f, -1.05f / 20.0f);
+        float peakRelease = exp (-1.0f / (0.050f * fs));
+        float gainAttack = 1.0f - exp (-1.0f / (0.0001f * fs));
+        float gainRelease = 1.0f - exp (-1.0f / (0.050f * fs));
+        delaySamples = int (0.005f * fs);
+        if (delaySamples < 1)
+            delaySamples = 1;
+        if (delaySamples > 2047)
+            delaySamples = 2047;
+
+        loop
+        {
+            float x = in;
+            float absoluteSample = abs (x);
+            if (absoluteSample >= peak && absoluteSample > 0.0f)
+            {
+                peak = absoluteSample;
+                peakHoldSamples = delaySamples;
+            }
+            else if (peakHoldSamples > 0)
+            {
+                peakHoldSamples = peakHoldSamples - 1;
+            }
+            else
+                peak = peak * peakRelease;
+            if (peak < 0.0000001f)
+                peak = 0.0000001f;
+
+            float targetGain = 1.0f;
+            if (peak > ceilLin)
+                targetGain = ceilLin / peak;
+
+            float gainCoefficient = targetGain < gainEnvelope ? gainAttack : gainRelease;
+            gainEnvelope = gainEnvelope + (targetGain - gainEnvelope) * gainCoefficient;
+
+            audioDelayLine.at(writePosition) = x;
+            int readPosition = writePosition - delaySamples;
+            if (readPosition < 0)
+                readPosition = readPosition + 2048;
+
+            // The undelayed detector controls audio that will exit after the look-ahead delay.
+            out <- isBypassed ? x : audioDelayLine.at(readPosition) * gainEnvelope;
+
+            writePosition = writePosition + 1;
+            if (writePosition >= 2048)
+                writePosition = 0;
+            advance();
+        }
+    }
+}

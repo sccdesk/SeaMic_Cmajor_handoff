@@ -1,0 +1,109 @@
+## global ("../modules/aec/SeaMicAEC.cmajor")
+
+## testPatch ("../patches/SeaMicAEC/SeaMicAEC.cmajorpatch")
+
+## testFunction()
+
+bool erleMathsIsSane()
+{
+    return abs (10.0 * log10 (100.0) - 20.0) < 0.001;
+}
+
+## testProcessor()
+
+processor FarEndSweepSource
+{
+    output stream float32 out;
+    float64 phase = 0.0;
+    float64 sweepPhase = 0.0;
+    float64 chaos = 0.4;
+
+    void main()
+    {
+        loop
+        {
+            float64 sweep = 0.5 + 0.5 * sin (sweepPhase);
+            float64 frequency = 120.0 + sweep * 3880.0;
+            chaos = 3.99 * chaos * (1.0 - chaos);
+            out <- float32 (0.85 * sin (phase) + 0.15 * (2.0 * chaos - 1.0));
+            phase = phase + twoPi * frequency * processor.period;
+            sweepPhase = sweepPhase + twoPi * (1.0 / 1.5) * processor.period;
+            advance();
+        }
+    }
+}
+
+processor SyntheticEchoPath
+{
+    input stream float32 in;
+    output stream float32 out;
+    float32[720] buffer;
+    wrap<360> position = 0;
+
+    void main()
+    {
+        loop
+        {
+            float64 sample = float64 (in);
+            float64 early = float64 (buffer[wrap<720> (position + 240)]);
+            float64 late = float64 (buffer[position]);
+            buffer[position] = float32 (sample);
+            buffer[wrap<720> (position + 360)] = float32 (sample);
+            out <- float32 (0.6 * early + 0.35 * late);
+            ++position;
+            advance();
+        }
+    }
+}
+
+processor AecConvergenceEvaluator
+{
+    input stream float32 microphone;
+    input stream float32 cleaned;
+    output stream int out;
+
+    int frames = 0;
+    float64 micEnergy = 0.0;
+    float64 cleanedEnergy = 0.0;
+
+    void main()
+    {
+        while (frames < 288000)
+        {
+            if (frames >= 240000)
+            {
+                micEnergy = micEnergy + float64 (microphone) * float64 (microphone);
+                cleanedEnergy = cleanedEnergy + float64 (cleaned) * float64 (cleaned);
+            }
+
+            frames = frames + 1;
+            out <- 1;
+            advance();
+        }
+
+        float64 erle = 10.0 * log10 (
+            (micEnergy + 1.0e-20) / (cleanedEnergy + 1.0e-20));
+        out <- (erle > 30.0) ? 1 : 0;
+        advance();
+
+        out <- -1;
+        advance();
+    }
+}
+
+graph AecConvergenceTest [[ main ]]
+{
+    output stream int out;
+
+    node source = FarEndSweepSource;
+    node echoPath = SyntheticEchoPath;
+    node canceller = SeaMicAECProcessor;
+    node evaluator = AecConvergenceEvaluator;
+
+    connection source.out -> echoPath.in;
+    connection source.out -> canceller.farEndReference;
+    connection echoPath.out -> canceller.microphone;
+    connection echoPath.out -> evaluator.microphone;
+    connection canceller.cleanedMicrophone -> evaluator.cleaned;
+    connection evaluator.out -> out;
+}

@@ -1,0 +1,50 @@
+// SeaMic composite DSP host graph: mono in -> modules -> mono out.
+// (audio devices map channel 0; debug outs stay in the render-test patch).
+graph SeaMicDSPChain [[ main ]]
+{
+    input  stream float in;
+    output stream float out;
+
+    input agc.targetDb;
+    input agc.maxGainDb;
+    input agc.minGainDb;
+    input kw.bypassKWeight;
+    input vad.bypassVad;
+    input dereverb.amount;
+    input dereverb.bypassDeReverb;
+    input gate.bypassGate;
+    input agc.bypassAGC;
+    input tone.drive;
+    input tone.asymmetry;
+    input tone.makeupDb;
+    input tone.bypassTone;
+    input toneDc.bypassDc;
+    input limit.bypassLimiter;
+    // VAD thresholds are fixed inside chain2 (enter 9 dB / exit 4 dB);
+    // hoisting them as graph inputs requires value inputs in the VAD again.
+
+    node kw    = KWeight;
+    node vad   = VAD;
+    node dereverb = DeReverb;
+    node gate  = SoftGate;
+    node agc   = AGC;
+    node tone  = Tone;
+    node toneDc = DCOffsetRemoval;
+    node limit = Limiter;
+
+    connection
+    {
+        in -> dereverb.in;
+        dereverb.out -> kw.in;
+        dereverb.out -> gate.in;
+        gate.out -> agc.in;
+        agc.out -> tone.in;
+        tone.out -> toneDc.in;
+        toneDc.out -> limit.in;
+        limit.out -> out;
+        kw.out -> vad.in;
+        kw.out -> agc.side;
+        vad.speech -> agc.speech;
+        vad.speech -> gate.speech;
+    }
+}

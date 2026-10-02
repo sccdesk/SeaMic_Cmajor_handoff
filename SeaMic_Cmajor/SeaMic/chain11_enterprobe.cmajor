@@ -1,0 +1,114 @@
+// Probe E: VAD decision isolated — full VAD state machine, but speech wire
+// replaced by the raw boolean BEFORE any hangover/flatness/boot logic:
+// enter-only latch. If THIS beeps, hangover/flatness/boot-gate is the killer.
+processor VADEnterOnly
+{
+    input  stream float in;
+    output stream float speech;
+    float[2048] ring;
+    int   winLen = 512;
+    int   pos = 0;
+    int   filled = 0;
+    float sumSq = 0.0f;
+    float noiseFloor = 0.01f;
+    float floorCap = 0.01f;
+    float floorMin = 0.0000001f;
+    float isSpeech = 0.0f;
+    int   initSamp = 0;
+    int   initLen = 32000;
+    int   fsInit = 0;
+    void main()
+    {
+        float fs = float (processor.frequency);
+        if (fsInit == 0)
+        {
+            winLen = int (0.032f * fs);
+            if (winLen > 2048)
+                winLen = 2048;
+            if (winLen < 64)
+                winLen = 64;
+            initLen = int (2.0f * fs);
+            fsInit = 1;
+        }
+        loop
+        {
+            float x = in;
+            float oldest = ring[pos];
+            sumSq = sumSq - oldest * oldest + x * x;
+            ring[pos] = x;
+            pos = pos + 1;
+            if (pos >= winLen)
+                pos = 0;
+            if (filled < winLen)
+                filled = filled + 1;
+            float rms = sqrt (sumSq / float (filled));
+            if (rms < floorMin)
+                rms = floorMin;
+            if (initSamp < initLen)
+            {
+                if (rms < noiseFloor)
+                    noiseFloor = rms;
+                initSamp = initSamp + 1;
+            }
+            if (noiseFloor > floorCap)
+                noiseFloor = floorCap;
+            if (noiseFloor < floorMin)
+                noiseFloor = floorMin;
+            float snrDb = 20.0f * log10 (rms / noiseFloor);
+            // PROBE: also latch if RMS itself is loud regardless of floor
+            // (distinguishes "floor wrong" from "comparison wrong").
+            float rmsDb = 20.0f * log10 (rms);
+            // LATCH-ONLY decision, NO boot gate (initSamp check REMOVED for probe):
+            // if `initLen = int(2.0f*fs)` misbehaves on the render engine
+            // (e.g. processor.frequency != 16000 at render), the gate would
+            // suppress every decision forever -> total silence. This probe tests that.
+            if (isSpeech < 0.5f)
+            {
+                if (snrDb > 9.0f)
+                    isSpeech = 1.0f;
+                if (rmsDb > -40.0f)
+                    isSpeech = 2.0f; // coded: absolute-level trip
+            }
+            speech <- isSpeech;
+            // PROBE OUT: raw rms x10 on the wire INSTEAD of the flag —
+            // if the level probe sang but this is silent, the DIFFERENCE
+            // (floor/init/snr lines) is the killer. Bisect by commenting out.
+            advance();
+        }
+    }
+}
+
+processor FlagBeepEnter
+{
+    input  stream float speech;
+    output stream float out;
+    float phase = 0.0f;
+    void main()
+    {
+        float fs = float (processor.frequency);
+        float inc = 440.0f / fs;
+        loop
+        {
+            float sp = speech;
+            phase = phase + inc;
+            if (phase >= 1.0f)
+                phase = phase - 1.0f;
+            out <- sin (phase * float (twoPi)) * sp * 0.5f;
+            advance();
+        }
+    }
+}
+
+graph SeaMicEnterProbe [[ main ]]
+{
+    input  stream float in;
+    output stream float out;
+    node vad = VADEnterOnly;
+    node bp  = FlagBeepEnter;
+    connection
+    {
+        in -> vad.in;
+        vad.speech -> bp.speech;
+        bp.out -> out;
+    }
+}

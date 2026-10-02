@@ -1,0 +1,50 @@
+// ============================================================
+// SesionDSP - patch base de trabajo para algoritmos DSP en Cmajor
+// cmajor.dev | Cmajor 1.0.3209 | Sesion lista para DSP
+// ============================================================
+
+processor GainStereo
+{
+    input  stream float inL;
+    input  stream float inR;
+    output stream float outL;
+    output stream float outR;
+
+    input value float gainDb [[ name: "Gain dB", min: -60.0, max: 12.0, init: 0.0, step: 0.1 ]];
+
+    float smoothedGain = 1.0f;
+
+    void main()
+    {
+        loop
+        {
+            float target = float (pow (10.0f, gainDb / 20.0f));
+            // suavizado one-pole por muestra (evita clicks al mover el param)
+            smoothedGain = smoothedGain + (target - smoothedGain) * 0.001f;
+            outL <- inL * smoothedGain;
+            outR <- inR * smoothedGain;
+            advance();
+        }
+    }
+}
+
+// Grafo principal [[main]]: entrada estereo -> GainStereo -> salida estereo
+// Para probar generadores sin entrada de audio, cambia el input a un oscilador.
+graph SesionDSP  [[main]]
+{
+    input  stream float inL;
+    input  stream float inR;
+    output stream float outL;
+    output stream float outR;
+
+    // Expone el knob de ganancia del nodo en el GUI del patch
+    input gain.gainDb;
+
+    node gain = GainStereo;
+
+    connection inL -> gain.inL;
+    connection inR -> gain.inR;
+    connection gain.outL -> outL;
+    connection gain.outR -> outR;
+}
+

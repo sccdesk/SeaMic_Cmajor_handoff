@@ -1,0 +1,15 @@
+graph SeaMicDeReverb [[ main ]]
+{
+    input stream float in;
+    output stream float out;
+    input dereverb.amount;
+    input dereverb.bypassDeReverb;
+
+    node dereverb = DeReverb;
+
+    connection
+    {
+        in -> dereverb.in;
+        dereverb.out -> out;
+    }
+}

@@ -1,0 +1,77 @@
+<figure>
+<svg width="660" height="230" viewBox="0 0 660 230" xmlns="http://www.w3.org/2000/svg" font-family="Georgia" font-size="11">
+  <defs><marker id="f1" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#222"/></marker></defs>
+  <g fill="#f5f0e6" stroke="#222">
+    <rect x="30" y="60" width="150" height="44" rx="6"/>
+    <rect x="230" y="60" width="160" height="44" rx="6"/>
+    <rect x="450" y="60" width="170" height="44" rx="6"/>
+    <rect x="230" y="150" width="160" height="44" rx="6" fill="#e6f2e9"/>
+    <rect x="450" y="150" width="170" height="44" rx="6" fill="#e6f2e9"/>
+  </g>
+  <g text-anchor="middle" fill="#111">
+    <text x="105" y="80">32 ms RMS window</text><text x="105" y="96">(circular buffer, 512)</text>
+    <text x="310" y="80">sub-block min</text><text x="310" y="96">1 s accumulation</text>
+    <text x="535" y="80">lower-only min over</text><text x="535" y="96">3 sub-blocks (3 s)</text>
+    <text x="310" y="170">speech ⇒ sub-block</text><text x="310" y="186">carries floor forward</text>
+    <text x="535" y="170">SNR = 20·log₁₀(Eₘₛ/floor)</text><text x="535" y="186">hysteresis 9 / 4 dB</text>
+  </g>
+  <g stroke="#222" stroke-width="1.5" fill="none" marker-end="url(#f1)">
+    <line x1="180" y1="82" x2="226" y2="82"/>
+    <line x1="390" y1="82" x2="446" y2="82"/>
+    <line x1="535" y1="104" x2="535" y2="146"/>
+    <path d="M 450 172 L 400 172 L 400 120 L 386 100"/>
+    <path d="M 230 172 L 140 172 L 140 110"/>
+  </g>
+  <text x="330" y="222" text-anchor="middle" font-size="10.5" font-style="italic" fill="#333">boot: first 0.25 s replaces the rotation with an instant minimum started at the −40 dBFS cap</text>
+</svg>
+<figcaption>Figure 4 — Min-statistics noise-floor estimator. The window always slides (even during
+speech), speech only <i>freezes the contribution</i> of a sub-block by substituting the previous
+floor value — this detail is what prevented the frozen-window bug M4.</figcaption>
+</figure>
+
+<h4>(d) AGC</h4>
+<p>Feed-forward servo on the K-weighted 32&nbsp;ms RMS. Error in dB drives the gain with asymmetric
+coefficients (80&nbsp;ms down / 1.5&nbsp;s up), clamped to [+30, −12]&nbsp;dB, updated <b>only while
+the VAD flag is set</b>, plus a <code>speechSeen</code> latch that prevents any adaptation before the
+first detected utterance. The applied linear gain is smoothed per-sample (10&nbsp;ms toward lower
+gain, 50&nbsp;ms toward higher) to avoid zipper noise.</p>
+
+<h4>(e) Soft gate</h4>
+<p>Downward expander driven by the VAD: target attenuation 0&nbsp;dB on speech, 10&nbsp;dB on silence,
+10&nbsp;ms close / 150&nbsp;ms release, initialised <b>closed</b> (10&nbsp;dB) so no pre-roll noise is
+emitted before the first detection, and holding open 400&nbsp;ms past each VAD exit
+(<code>holdExtraTime</code>) — the explicit "longer hold" delivered on the stakeholder's request.</p>
+
+<h4>(f) Look-ahead limiter</h4>
+<p>64-sample delay line, peak follower on the undelayed input (instant attack, 80&nbsp;ms release),
+gain = min(1, 0.891/peak) applied to the delayed sample. Per-sample guarantee, no windowing (§2.6).</p>
+
+<h3>5.3 Consolidated parameter table</h3>
+<table>
+<tr><th>Stage</th><th>Parameter</th><th>Value</th><th>Justification</th></tr>
+<tr><td rowspan="2">DC block</td><td>Cutoff</td><td>20 Hz</td><td>Below speech band, removes bias/rumble</td></tr>
+<tr><td>R coefficient</td><td>1 − 2π·20/f<sub>s</sub>, clamped [0.9, 0.9995]</td><td>Rate-agnostic (R7)</td></tr>
+<tr><td rowspan="3">K-weight</td><td>Shelf</td><td>+3.985 dB @ 1681.974 Hz, S=0.7071</td><td>BS.1770 ear-resonance model</td></tr>
+<tr><td>High-pass</td><td>60 Hz, Q = 0.5</td><td>RLB stage; conservative variant</td></tr>
+<tr><td>Computation</td><td>Runtime RBJ at f<sub>s</sub></td><td>Avoids 48 kHz coefficient porting error</td></tr>
+<tr><td rowspan="5">VAD</td><td>Energy window</td><td>32 ms rectangular RMS</td><td>~2 frames of speech phonemes; cheap</td></tr>
+<tr><td>Noise floor</td><td>Boot at −40 dBFS cap, lower-only, 3×1 s sub-min</td><td>Min-statistics; kills phantom-SNR latch (M3)</td></tr>
+<tr><td>Hysteresis</td><td>enter 9 dB / exit 4 dB</td><td>Speech-noise separation at 16 kHz band</td></tr>
+<tr><td>Hangover</td><td><b>600 ms</b></td><td>Stakeholder "longer hold" (R5)</td></tr>
+<tr><td>Flatness exit</td><td>after 1.5 s: &lt;3 dB crest for 600 ms</td><td>Defeats fan/hum lock-on</td></tr>
+<tr><td rowspan="3">AGC</td><td>Target</td><td>−19 dBFS (K-weighted RMS)</td><td>Comms loudness; not R128 −23 (§2.1)</td></tr>
+<tr><td>Ballistics</td><td>80 ms down / 1.5 s up; gain smooth 10/50 ms</td><td>Fast protect, slow release, no zipper</td></tr>
+<tr><td>Range</td><td>[−12, +30] dB, VAD-frozen, speechSeen latch</td><td>Bounded boost; no noise pumping</td></tr>
+<tr><td rowspan="2">Gate</td><td>Depth / times</td><td>max −10 dB; 10 ms close, 150 ms release</td><td>Click-free, Opus-DTX friendly</td></tr>
+<tr><td>Hold</td><td>start closed; +400 ms past VAD exit</td><td>No pre-roll; no tail chopping (R5)</td></tr>
+<tr><td rowspan="2">Limiter</td><td>Ceiling</td><td>−1 dBFS (0.891)</td><td>Headroom for Opus float pipeline</td></tr>
+<tr><td>Lookahead / release</td><td>64 samples (4 ms) / 80 ms</td><td>Peak-perfect, inaudible gain ride</td></tr>
+</table>
+
+<h3>5.4 Patch organisation</h3>
+<table>
+<tr><th>Patch</th><th>Sources</th><th>Purpose</th></tr>
+<tr><td><code>SeaMic.cmajorpatch</code></td><td>chain1–4</td><td>Full chain + debug streams (vadFlag, agcGainDb) for offline rendering</td></tr>
+<tr><td><code>SeaMicLive.cmajorpatch</code></td><td>chain1,2,3,5</td><td>Mono in/out only — device-safe live MVP</td></tr>
+<tr><td>8 probe patches</td><td>chain6–13</td><td>Bisect probes: flag-beep, SNR/level/floor/DC taps, enter-only, pass-through, mini VAD (§6)</td></tr>
+</table>
