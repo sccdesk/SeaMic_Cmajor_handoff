@@ -73,7 +73,10 @@ const moduleSpecs = [
     workletName: "seamic-aec-worklet",
     bypassEndpoints: ["bypassAec", "bypassDcFilters"],
     fixedBypasses: { bypassDcFilters: 1 },
-    // No guiTarget: the AEC node is a skeleton until the module is rebuilt.
+    guiTarget: "#patch-gui-aec",
+    fixedSettings:
+      "Filter length is in taps, so time coverage shrinks as the AudioContext rate rises. " +
+      "The host keeps AEC bypassed until a playback reference is connected.",
     parameters: [
       { endpoint: "filterLength", label: "Filter length", min: 32, max: 1024, step: 32, value: 512, unit: "taps", precision: 0 },
       { endpoint: "stepSize", label: "Adaptation step size", min: 0.01, max: 2, step: 0.01, value: 0.5, precision: 2 },
@@ -1064,8 +1067,13 @@ function getModuleBypasses(spec) {
     ...Object.fromEntries(spec.bypassEndpoints.map((id) => [id, 1])),
     ...fixedBypasses
   };
-  if (spec.id === "aec" || spec.id === "vad") {
-    // Both modules are marked "POR REHACER": keep them bypassed until they are rebuilt.
+  if (spec.id === "vad") {
+    // The Noise Gate / VAD is still marked "POR REHACER": keep it bypassed until rebuilt.
+    return allBypassed;
+  }
+  if (spec.id === "aec" && !hasPlaybackReference()) {
+    // AEC stays bypassed until a far-end playback reference is connected. Without one
+    // there is nothing to cancel, and activating it would only add processing.
     return allBypassed;
   }
 
@@ -1380,7 +1388,9 @@ function setChainBypassed(isBypassed) {
   isChainActive = !isBypassed;
   if (isChainActive) {
     for (const spec of moduleSpecs) {
-      moduleActive[spec.id] = spec.id !== "aec" && spec.id !== "vad";
+      // AEC joins the chain only once a playback reference exists; VAD is still
+      // marked for rework and stays out.
+      moduleActive[spec.id] = spec.id !== "vad" && (spec.id !== "aec" || hasPlaybackReference());
     }
   }
   soloModuleId = null;

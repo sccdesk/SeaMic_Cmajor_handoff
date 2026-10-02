@@ -83,10 +83,11 @@
       <p class="audio-warning">
         Every DSP module starts bypassed. Use the per-module controls or activate the full chain.
         Parameter sliders send changes to Cmajor immediately, even while a module is bypassed;
-        activate that module to hear the result. AEC and Noise Gate / VAD are marked
-        “POR REHACER” and stay bypassed while they are rebuilt. To exercise AEC, connect the
-        application playback with SeaMicAudio.connectPlaybackSource(node) so its echo reaches
-        the microphone. Use headphones.
+        activate that module to hear the result. The Noise Gate / VAD is marked
+        “POR REHACER” and stays bypassed while it is rebuilt. AEC stays bypassed until a playback
+        reference is connected; to exercise it, connect the application playback with
+        SeaMicAudio.connectPlaybackSource(node) so its echo reaches the microphone.
+        Use headphones.
       </p>
 
       <div class="rack-arrow" aria-hidden="true">▼</div>
@@ -154,16 +155,18 @@ out &lt;- isBypassed ? sample : filtered;</code></pre>
           </details>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
-        <li class="signal-node" data-status="rebuild" data-solo="aec">
+        <li class="signal-node" data-status="bypassed" data-solo="aec">
           <span class="signal-node-type">DSP MODULE 02</span>
           <strong>AEC</strong>
           <span class="signal-node-detail">Real-time NLMS echo cancellation using the application playback bus.</span>
-          <span class="signal-stage-status">Under rework · skeleton kept for the rebuild</span>
-          <span class="module-state" data-state="rebuild">POR REHACER</span>
-          <div class="patch-gui" id="patch-gui-aec" aria-live="polite">Module under rework — the controls will be rebuilt from scratch.</div>
+          <span class="signal-stage-status">Implemented · starts bypassed · needs a playback reference</span>
+          <span class="module-state" data-state="bypassed">BYPASSED · AWAITING REFERENCE</span>
+          <button class="module-toggle" type="button" data-module="aec" aria-pressed="false" disabled>Activate</button>
+          <button class="solo-button" type="button" data-solo="aec" aria-pressed="false" disabled>Solo</button>
+          <div class="patch-gui" id="patch-gui-aec" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
           <details class="module-info">
             <summary>Implementation and Cmajor</summary>
-            <p>The adaptive filter estimates echo from the live pre-output playback reference and subtracts that estimate from the microphone. Adaptation pauses during detected double-talk. The default filter has 512 taps; at 16 kHz that covers 32 ms, with less time coverage at higher sample rates.</p>
+            <p>The adaptive filter estimates echo from the live pre-output playback reference and subtracts that estimate from the microphone. Adaptation pauses during detected double-talk. The default filter has 512 taps; at 16 kHz that covers 32 ms, with less time coverage at higher sample rates. The module stays bypassed until a playback reference is connected, because with no far-end signal there is nothing to cancel.</p>
             <pre><code>float64 residual = mic - estimatedEcho;
 if (! bypass &amp;&amp; ! adaptationFrozen &amp;&amp; referencePower &gt; 1.0e-8)
 {
