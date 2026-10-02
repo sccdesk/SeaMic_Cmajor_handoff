@@ -96,12 +96,23 @@ button {
   font-size: 11px;
 }
 
+.console-note {
+  width: min(100% - 2rem, 1220px);
+  margin: 0.5rem auto 0;
+  padding: 0.3rem 0.55rem;
+  border: 1px dashed var(--ad-border-lo);
+  background: var(--ad-bg-alt);
+  color: var(--ad-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
 main {
   width: min(100% - 2rem, 1220px);
   flex: 1;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
+  grid-template-columns: minmax(0, 1fr) 250px;
   gap: 1rem;
   align-items: start;
 }
@@ -1089,7 +1100,7 @@ h2 {
   display: flex;
   align-items: stretch;
   gap: 4px;
-  height: 260px;
+  height: 380px;
 }
 
 .output-rail .waveform-display {
@@ -1118,7 +1129,7 @@ h2 {
 
 .level-meter[data-orientation="vertical"] {
   display: flex;
-  width: 26px;
+  width: 30px;
   height: 100%;
   flex-direction: column-reverse;
 }
@@ -1192,7 +1203,7 @@ h2 {
   }
 
   .output-visuals {
-    height: 200px;
+    height: 280px;
   }
 }
 
@@ -1202,6 +1213,6 @@ h2 {
   }
 
   .output-visuals {
-    height: 160px;
+    height: 220px;
   }
 }

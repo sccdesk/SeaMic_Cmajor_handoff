@@ -1321,7 +1321,7 @@ function drawWaveform(canvas, history, colorToken) {
   context.strokeStyle = getComputedStyle(document.documentElement)
     .getPropertyValue(colorToken)
     .trim();
-  context.lineWidth = 1.5;
+  context.lineWidth = vertical ? 2 : 1.5;
   context.beginPath();
   history.forEach(({ minimum, maximum }, index) => {
     if (vertical) {
