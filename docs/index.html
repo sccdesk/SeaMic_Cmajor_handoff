@@ -144,32 +144,7 @@
           <button class="solo-button" type="button" data-solo="dc" aria-pressed="false" disabled>Solo</button>
           <div class="patch-gui" id="patch-gui-dc" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
           <details class="module-info">
-            <summary>Algorithm and pseudocode</summary>
-            <p>Each input uses a first-order 20 Hz high-pass filter. The patch filters both microphone and playback-reference signals when active; Solo tests only the microphone path.</p>
-            <pre><code>PROCEDURE DCOffsetRemoval (sampleRate)
-
-STATE
-    previousInput  = 0        // x[n-1]
-    previousOutput = 0        // y[n-1]
-    bypassed = TRUE
-
-START-UP
-    coefficient = exp(-2*pi*20 / sampleRate)   // one-pole 20 Hz high-pass
-
-ON EVENT bypassDc (value)
-    bypassed = (value &gt; 0.5)
-
-FOR EACH SAMPLE x
-    filtered = x - previousInput + coefficient * previousOutput
-    previousInput  = x
-    previousOutput = filtered
-    // The two state updates run even while bypassed, so the filter stays
-    // warm and un-bypassing produces no transient.
-    IF bypassed THEN out = x
-    ELSE               out = filtered
-</code></pre>
-            <p>Source: <code>cmajor/modules/dsp/DCOffsetRemoval.cmajor</code>.</p>
-          </details>
+            <summary>Algorithm and pseudocode</summary></details>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
         <li class="signal-node" data-status="bypassed" data-solo="aec">
@@ -182,73 +157,7 @@ FOR EACH SAMPLE x
           <button class="solo-button" type="button" data-solo="aec" aria-pressed="false" disabled>Solo</button>
           <div class="patch-gui" id="patch-gui-aec" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
           <details class="module-info">
-            <summary>Algorithm and pseudocode</summary>
-            <p>The adaptive filter estimates echo from the live pre-output playback reference and subtracts that estimate from the microphone. Adaptation pauses during detected double-talk. The default filter has 512 taps; at 16 kHz that covers 32 ms, with less time coverage at higher sample rates. The module stays bypassed until a playback reference is connected, because with no far-end signal there is nothing to cancel.</p>
-            <pre><code>PROCEDURE SeaMicAECProcessor (sampleRate)
-
-CONSTANT maxTaps = 1024
-
-STATE
-    weights[0 .. maxTaps-1]    = 0   // adaptive FIR taps (float32)
-    history[0 .. 2*maxTaps-1]  = 0   // mirrored far-end history (float32)
-    position    = 0                    // write cursor, wraps at maxTaps
-    activeTaps  = 512
-    mu          = 0.5                  // adaptation step size
-    powerSmoothing = 1 / 512
-    referencePower = 0 ; microphonePower = 0 ; residualPower = 0 ; echoPower = 0
-    doubleTalkOn = TRUE ; bypassed = TRUE
-    frozen = FALSE ; converged = FALSE
-
-START-UP
-    meterSmoothing = 1 / max(sampleRate * 0.1, 1)   // ~100 ms meters
-
-ON EVENT filterLength (value)
-    taps = clamp(truncate(value), 16, maxTaps)
-    activeTaps = taps ; powerSmoothing = 1 / taps
-ON EVENT stepSize (value)          mu = value
-ON EVENT doubleTalkEnabled (value) doubleTalkOn = (value &gt; 0.5)
-ON EVENT bypassAec (value)         bypassed = (value &gt; 0.5)
-
-FOR EACH SAMPLE (d, x)              // d = microphone, x = far-end reference
-    history[wrap(position)] = x
-    history[wrap(position + maxTaps)] = x     // mirrored copy
-
-    echoHat = 0
-    FOR tap = 0 TO activeTaps-1
-        echoHat = echoHat + weights[wrap(tap)]
-                            * history[wrap(position + maxTaps - tap)]
-    e = d - echoHat
-
-    referencePower  = referencePower  + (x*x         - referencePower)  * powerSmoothing
-    microphonePower = microphonePower + (d*d         - microphonePower) * meterSmoothing
-    residualPower   = residualPower   + (e*e         - residualPower)   * meterSmoothing
-    echoPower       = echoPower       + (echoHat*echoHat - echoPower)       * meterSmoothing
-
-    IF echoPower &gt; 1e-7 AND echoPower &gt; 0.5 * microphonePower
-        converged = TRUE                  // latched, never cleared again
-
-    frozen = doubleTalkOn AND converged
-            AND echoPower &gt; 1e-7
-            AND microphonePower &gt; 4 * echoPower
-
-    // NLMS update, only while not bypassed, not frozen and reference present
-    IF NOT bypassed AND NOT frozen AND referencePower &gt; 1e-8
-        step = e * mu / (referencePower * activeTaps + 1e-6)
-        FOR tap = 0 TO activeTaps-1
-            weights[wrap(tap)] = weights[wrap(tap)]
-                               + step * history[wrap(position + maxTaps - tap)]
-
-    IF bypassed THEN out = d ELSE out = e
-
-    erle            = 10*log10((microphonePower + 1e-20) / (residualPower + 1e-20))
-    micLevelDb      = 10*log10(microphonePower + 1e-20)
-    residualLevelDb = 10*log10(residualPower + 1e-20)
-    echoLevelDb     = 10*log10(echoPower + 1e-20)
-
-    position = wrap(position + 1)          // wrap = single +/-1 correction
-</code></pre>
-            <p>Source: <code>cmajor/modules/aec/SeaMicAEC.cmajor</code>.</p>
-          </details>
+            <summary>Algorithm and pseudocode</summary></details>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
         <li class="signal-node" data-status="bypassed" data-solo="dereverb">
@@ -261,49 +170,7 @@ FOR EACH SAMPLE (d, x)              // d = microphone, x = far-end reference
           <button class="solo-button" type="button" data-solo="dereverb" aria-pressed="false" disabled>Solo</button>
           <div class="patch-gui" id="patch-gui-dereverb" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
           <details class="module-info">
-            <summary>Algorithm and pseudocode</summary>
-            <p>Fast and slow level followers compare attacks with room-tail decay. Processing only attenuates: gain is limited to a maximum of 0 dB and a minimum of about −6 dB. Gain reduction follows over 20 ms and recovery over 120 ms. This lightweight envelope shaper is not a full acoustic de-reverberator.</p>
-            <pre><code>PROCEDURE DeReverb (sampleRate)
-
-STATE
-    intensity     = 0.5        // "amount", clamped to [0, 1]
-    bypassed      = TRUE
-    fastEnvelope  = 0          // 1 ms attack / 30 ms release follower
-    slowEnvelope  = 0          // 50 ms attack / 500 ms release follower
-    gainEnvelope  = 1
-
-START-UP
-    fastAttack   = 1 - exp(-1 / (0.001 * sampleRate))
-    fastRelease  = 1 - exp(-1 / (0.030 * sampleRate))
-    slowAttack   = 1 - exp(-1 / (0.050 * sampleRate))
-    slowRelease  = 1 - exp(-1 / (0.500 * sampleRate))
-    gainAttack   = 1 - exp(-1 / (0.020 * sampleRate))   // used when REDUCING
-    gainRelease  = 1 - exp(-1 / (0.120 * sampleRate))   // used when RECOVERING
-    minimumGain  = 0.50118723                          // -6 dB floor
-
-ON EVENT amount (value)         intensity = clamp(value, 0, 1)
-ON EVENT bypassDeReverb (value) bypassed = (value &gt; 0.5)
-
-FOR EACH SAMPLE x
-    level = abs(x)
-
-    fastEnvelope = fastEnvelope + (level - fastEnvelope)
-                             * (level &gt; fastEnvelope ? fastAttack  : fastRelease)
-    slowEnvelope = slowEnvelope + (level - slowEnvelope)
-                             * (level &gt; slowEnvelope ? slowAttack  : slowRelease)
-
-    IF bypassed THEN targetGain = 1
-    ELSE
-        ratio      = fastEnvelope / (slowEnvelope + 1e-7)
-        targetGain = clamp(ratio, 1e-6, 1) ^ intensity   // ratio is always &lt;= 1
-        targetGain = max(targetGain, minimumGain)          // attenuate only, never boost
-
-    gainEnvelope = gainEnvelope + (targetGain - gainEnvelope)
-                             * (targetGain &lt; gainEnvelope ? gainAttack : gainRelease)
-    out = x * gainEnvelope
-</code></pre>
-            <p>Source: <code>cmajor/modules/dsp/DeReverb.cmajor</code>.</p>
-          </details>
+            <summary>Algorithm and pseudocode</summary></details>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
         <li class="signal-node" data-status="rebuild" data-solo="vad">
@@ -314,101 +181,7 @@ FOR EACH SAMPLE x
           <span class="module-state" data-state="rebuild">POR REHACER</span>
           <div class="patch-gui" id="patch-gui-vad" aria-live="polite">Module under rework — the controls will be rebuilt from scratch.</div>
           <details class="module-info">
-            <summary>Algorithm and pseudocode</summary>
-            <p>The detector tracks a 32 ms rolling RMS level and a noise floor that can fall as the environment gets quieter. It opens above the SNR enter threshold (9 dB default) and begins its close timer below the SNR exit threshold (4 dB default) or when the input is extremely quiet. The close timer holds speech for the VAD hangover (400 ms default); the gate then adds its hold (150 ms default) before fading down over 30 ms to the gate depth (30 dB default). Gate depth, gate hold, hangover, and both SNR thresholds were configurable in real time in the previous UI. Otsu classification is not implemented. In Solo, audio passes unchanged while the detector is tested.</p>
-            <pre><code>PROCEDURE VAD (sampleRate)                 // detector
-
-STATE
-    ring[0 .. 2047] = 0 ; winLen = 512 ; pos = 0 ; filled = 0 ; sumSq = 0
-    noiseFloor = 0.01 ; floorCap = 0.01 ; floorMin = 1e-7
-    subMinA = subMinB = subMinC = 0.01 ; curSubMin = 1000 ; subCount = 0
-    enterLevelDb = 9 ; exitLevelDb = 4 ; hangTimeMs = 400
-    absoluteExitLevel = 0.001               // -60 dBFS
-    hangCount = 0 ; isSpeech = 0 ; initSamp = 0 ; bypassed = TRUE
-
-START-UP
-    winLen  = clamp(truncate(0.032 * sampleRate), 64, 2048)   // 32 ms
-    subLen  = truncate(sampleRate)                             // 1 s
-    initLen = truncate(0.25  * sampleRate)                     // 250 ms
-
-ON EVENT bypassVad (value)  bypassed = (value &gt; 0.5)
-ON EVENT enterDb (value)    enterLevelDb = clamp(value, 1, 20)
-ON EVENT exitDb (value)     exitLevelDb  = clamp(value, 0, 15)
-ON EVENT hangoverMs (value) hangTimeMs   = clamp(value, 0, 2000)
-
-FOR EACH SAMPLE x
-    sumSq = max(0, sumSq - ring[pos]*ring[pos] + x*x)   // max(0,...) prevents NaN
-    ring[pos] = x
-    pos = (pos + 1) mod winLen
-    filled = min(filled + 1, winLen)
-
-    rms = sqrt(sumSq / filled)
-    IF rms &lt; floorMin THEN rms = floorMin
-
-    // Minimum tracking only while NOT in speech, so speech never raises the floor
-    IF isSpeech &lt; 0.5 AND rms &lt; curSubMin THEN curSubMin = rms
-
-    subCount = subCount + 1
-    IF subCount &gt;= subLen                       // 1-second boundary
-        subCount = 0
-        subMinC = subMinB ; subMinB = subMinA
-        IF isSpeech &lt; 0.5
-            subMinA = (curSubMin &gt; 100 ? noiseFloor : curSubMin)
-        ELSE
-            subMinA = noiseFloor                 // freeze the floor during speech
-        curSubMin = 1000
-        noiseFloor = min(noiseFloor, subMinA, subMinB, subMinC)   // can only fall
-
-    IF initSamp &lt; initLen                       // seed the floor for 250 ms
-        noiseFloor = min(noiseFloor, rms)
-        subMinA = subMinB = subMinC = noiseFloor
-        curSubMin = 1000
-        initSamp = initSamp + 1
-
-    noiseFloor = clamp(noiseFloor, floorMin, floorCap)
-    snrDb  = 20 * log10(rms / noiseFloor)
-    enterT = enterLevelDb
-    exitT  = min(exitLevelDb, enterT)             // hysteresis is forced structurally
-    hangLimit = hangTimeMs * 0.001 * sampleRate
-
-    IF isSpeech &gt; 0.5
-        IF snrDb &lt; exitT OR rms &lt; absoluteExitLevel
-            hangCount = hangCount + 1
-            IF hangCount &gt;= hangLimit THEN isSpeech = 0 ; hangCount = 0
-        ELSE
-            hangCount = 0
-    ELSE
-        IF snrDb &gt; enterT THEN isSpeech = 1 ; hangCount = 0
-
-    speech = (bypassed ? 1.0 : isSpeech)         // bypassed detector reports speech
-
-PROCEDURE SoftGate (sampleRate)                  // attenuator driven by VAD.speech
-
-STATE
-    att = 0            // current attenuation in dB, 0 = fully open
-    holdExtra = 0 ; closeAttDb = 30 ; holdTimeMs = 150 ; bypassed = TRUE
-
-START-UP
-    attCoeff = 1 - exp(-1 / (0.030 * sampleRate))   // 30 ms close ramp
-    relCoeff = 1 - exp(-1 / (0.150 * sampleRate))   // 150 ms release ramp
-
-ON EVENT bypassGate (value)  bypassed = (value &gt; 0.5)
-ON EVENT gateDepthDb (value) closeAttDb = clamp(value, 0, 60)
-ON EVENT gateHoldMs (value)  holdTimeMs = clamp(value, 0, 1000)
-
-FOR EACH SAMPLE (x, sp)
-    holdLimit = holdTimeMs * 0.001 * sampleRate
-    want = 0
-    IF sp &lt; 0.5
-        IF holdExtra &lt; holdLimit THEN holdExtra = holdExtra + 1
-        ELSE                           want = closeAttDb
-    ELSE
-        holdExtra = 0
-    att = att + (want - att) * (want &gt; att ? attCoeff : relCoeff)
-    out = bypassed ? x : x * 10^(-att / 20)
-</code></pre>
-            <p>Source: <code>chain2_vad.cmajor</code>.</p>
-          </details>
+            <summary>Algorithm and pseudocode</summary></details>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
         <li class="signal-node" data-status="bypassed" data-solo="loudness">
@@ -421,88 +194,7 @@ FOR EACH SAMPLE (x, sp)
           <button class="solo-button" type="button" data-solo="loudness" aria-pressed="false" disabled>Solo</button>
           <div class="patch-gui" id="patch-gui-loudness" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
           <details class="module-info">
-            <summary>Algorithm and pseudocode</summary>
-            <p>The K-weighted signal feeds a 512-sample RMS measurement for the AGC sidechain. Gain reduction responds over 80 ms and recovery over 1.5 s, with configurable target and gain limits. The output signal is multiplied by the smoothed gain. Full integrated EBU R128 measurement and gating are not implemented.</p>
-            <pre><code>PROCEDURE KWeight (sampleRate)             // BS.1770 sidechain
-
-STATE  (direct-form I delay lines)
-    sh_x1 = sh_x2 = sh_y1 = sh_y2 = 0        // high-shelf stage
-    hp_x1 = hp_x2 = hp_y1 = hp_y2 = 0        // high-pass stage
-    sh_b0 = hp_b0 = 1 ; all other coefficients = 0
-    bypassed = TRUE
-
-START-UP   (computed once, so the filter is rate-independent)
-    A        = 10^(3.985419 / 40)                     // ~1.2587
-    w0       = 2*pi * 1681.974 / sampleRate           // shelf centre
-    alphaShelf = sin(w0) * 0.5 * sqrt((A + 1/A) * (1/0.7071 - 1) + 2)
-    sqA = sqrt(A) ; cosw = cos(w0)
-    b0s = A*((A+1) + (A-1)*cosw + 2*sqA*alphaShelf)
-    b1s = -2*A*((A-1) + (A+1)*cosw)
-    b2s = A*((A+1) + (A-1)*cosw - 2*sqA*alphaShelf)
-    a0s = (A+1) - (A-1)*cosw + 2*sqA*alphaShelf
-    a1s = 2*((A-1) - (A+1)*cosw)
-    a2s = (A+1) - (A-1)*cosw - 2*sqA*alphaShelf
-    sh_b0 = b0s/a0s ; sh_b1 = b1s/a0s ; sh_b2 = b2s/a0s
-    sh_a1 = a1s/a0s ; sh_a2 = a2s/a0s
-    wh       = 2*pi * 60 / sampleRate                 // high-pass corner
-    alh = sin(wh) ; coh = cos(wh)
-    b0h = (1+coh)*0.5 ; b1h = -(1+coh) ; b2h = (1+coh)*0.5
-    a0h = 1+alh ; a1h = -2*coh ; a2h = 1-alh
-    hp_b0 = b0h/a0h ; hp_b1 = b1h/a0h ; hp_b2 = b2h/a0h
-    hp_a1 = a1h/a0h ; hp_a2 = a2h/a0h
-
-ON EVENT bypassKWeight (value)  bypassed = (value &gt; 0.5)
-
-FOR EACH SAMPLE x
-    ys = sh_b0*x + sh_b1*sh_x1 + sh_b2*sh_x2 - sh_a1*sh_y1 - sh_a2*sh_y2
-    sh_x2 = sh_x1 ; sh_x1 = x ; sh_y2 = sh_y1 ; sh_y1 = ys
-    yh = hp_b0*ys + hp_b1*hp_x1 + hp_b2*hp_x2 - hp_a1*hp_y1 - hp_a2*hp_y2
-    hp_x2 = hp_x1 ; hp_x1 = ys ; hp_y2 = hp_y1 ; hp_y1 = yh
-    out = bypassed ? x : yh
-
-PROCEDURE AGC (sampleRate)                 // gain computer, driven by VAD.speech
-
-STATE
-    ring[0 .. 511] = 0 ; pos = 0 ; filled = 0 ; sumSq = 0
-    gainDb      = 0        // servo target gain in dB
-    appliedGain = 1        // smoothed linear gain actually applied
-    bypassed = TRUE
-
-START-UP
-    downCoeff  = 1 - exp(-1 / (0.08  * sampleRate))   // servo reduces fast
-    upCoeff    = 1 - exp(-1 / (1.5   * sampleRate))   // servo raises slowly
-    smoothDown = 1 - exp(-1 / (0.010 * sampleRate))   // applied gain falling
-    smoothUp   = 1 - exp(-1 / (0.050 * sampleRate))   // applied gain rising
-
-ON EVENT bypassAGC (value)  bypassed = (value &gt; 0.5)
-VALUE INPUTS targetDb, maxGainDb, minGainDb   // read directly; host clamps them
-
-FOR EACH SAMPLE (x, s, sp)                 // x = audio, s = K-weighted sidechain
-    sumSq = max(0, sumSq - ring[pos]*ring[pos] + s*s)   // max(0,...) prevents NaN
-    ring[pos] = s
-    pos = (pos + 1) mod 512
-    filled = min(filled + 1, 512)
-
-    rms = sqrt(sumSq / filled)
-    IF rms &lt; 1e-7 THEN rms = 1e-7
-
-    // The servo only runs while speech is present; gainDb freezes otherwise
-    IF NOT bypassed AND sp &gt; 0.5
-        errDb = targetDb - 20 * log10(rms * appliedGain)   // regulates OUTPUT level
-        gainDb = gainDb + (errDb - gainDb)
-                         * (errDb &lt; gainDb ? downCoeff : upCoeff)
-        gainDb = clamp(gainDb, minGainDb, maxGainDb)
-
-    target = 10^(gainDb / 20)
-    IF NOT bypassed
-        appliedGain = appliedGain + (target - appliedGain)
-                                  * (target &lt; appliedGain ? smoothDown : smoothUp)
-
-    out       = bypassed ? x : x * appliedGain
-    gainDbOut = bypassed ? 0 : gainDb
-</code></pre>
-            <p>Source: <code>chain1_filters.cmajor</code> (K-weighting) and <code>chain3_agc_gate_limit.cmajor</code> (AGC).</p>
-          </details>
+            <summary>Algorithm and pseudocode</summary></details>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
         <li class="signal-node" data-status="bypassed" data-solo="tone">
@@ -515,40 +207,7 @@ FOR EACH SAMPLE (x, s, sp)                 // x = audio, s = K-weighted sidechai
           <button class="solo-button" type="button" data-solo="tone" aria-pressed="false" disabled>Solo</button>
           <div class="patch-gui" id="patch-gui-tone" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
           <details class="module-info">
-            <summary>Algorithm and pseudocode</summary>
-            <p>The processor applies drive, a rational soft saturation curve, and a configurable quadratic asymmetry term, then blends the result with the dry input over 5 ms. The patch follows it with a DC blocker. A symmetric waveshaper and tone shelf remain future work.</p>
-            <pre><code>PROCEDURE Tone (sampleRate)
-
-STATE
-    drive      = 1.5        // clamped to [1, 8]
-    asymmetry  = 0.2        // clamped to [0, 0.5]
-    makeupGain = 0.70794578 // = 10^(-3/20), matches makeupDb default of -3 dB
-    bypassed = TRUE
-    wetMix = 0              // smoothed wet/dry crossfade
-
-START-UP
-    mixSmoothing = 1 - exp(-1 / (0.005 * sampleRate))   // 5 ms crossfade
-
-ON EVENT drive (value)        drive      = clamp(value, 1, 8)
-ON EVENT asymmetry (value)    asymmetry  = clamp(value, 0, 0.5)
-ON EVENT makeupDb (value)     makeupGain = 10^(clamp(value, -12, 6) / 20)
-ON EVENT bypassTone (value)   bypassed   = (value &gt; 0.5)
-
-FOR EACH SAMPLE x
-    driven     = x * drive
-    compressed = driven / (1 + abs(driven))                  // odd-symmetric saturator
-    shaped     = (compressed + asymmetry * compressed^2)
-                 / (1 + asymmetry)                          // even-order term added
-
-    targetMix = (bypassed ? 0 : 1)
-    wetMix    = wetMix + (targetMix - wetMix) * mixSmoothing
-    out = x + (shaped * makeupGain - x) * wetMix             // linear crossfade
-
-// Chain order of this patch:  out = DCOffsetRemoval( Tone( in ) )
-// The post-shaper DC blocker removes the offset that the u^2 term creates.
-</code></pre>
-            <p>Source: <code>cmajor/modules/dsp/Tone.cmajor</code>.</p>
-          </details>
+            <summary>Algorithm and pseudocode</summary></details>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
         <li class="signal-node" data-status="bypassed" data-solo="limiter">
@@ -561,56 +220,7 @@ FOR EACH SAMPLE x
           <button class="solo-button" type="button" data-solo="limiter" aria-pressed="false" disabled>Solo</button>
           <div class="patch-gui" id="patch-gui-limiter" aria-live="polite">The Cmajor module controls will appear when the engine starts.</div>
           <details class="module-info">
-            <summary>Algorithm and pseudocode</summary>
-            <p>The peak detector holds the highest recent sample through the 5 ms look-ahead interval. Gain reduction is applied to the matching delayed sample, with a −1.05 dBFS ceiling and a 50 ms gain release. This is sample-peak limiting; inter-sample true peaks are not measured.</p>
-            <pre><code>PROCEDURE Limiter (sampleRate)
-
-CONSTANT lineLength = 2048
-
-STATE
-    delayLine[0 .. lineLength-1] = 0
-    writePosition = 0 ; delaySamples = 80 ; peakHoldSamples = 0
-    peak = 0 ; gainEnvelope = 1 ; bypassed = TRUE
-
-START-UP
-    ceilLin     = 10^(-1.05 / 20)              // ~0.8861, 0.05 dB below -1 dBFS
-    peakRelease = exp(-1 / (0.050 * sampleRate))   // DETECTOR multiplier
-    gainAttack  = 1 - exp(-1 / (0.0001 * sampleRate))  // 0.1 ms
-    gainRelease = 1 - exp(-1 / (0.050 * sampleRate))   // GAIN coefficient
-    delaySamples = clamp(truncate(0.005 * sampleRate), 1, lineLength-1)  // 80
-
-ON EVENT bypassLimiter (value)  bypassed = (value &gt; 0.5)
-
-FOR EACH SAMPLE x
-    a = abs(x)
-
-    // Peak detector: hold the new peak for the whole look-ahead window
-    IF a &gt;= peak AND a &gt; 0
-        peak = a ; peakHoldSamples = delaySamples
-    ELSE IF peakHoldSamples &gt; 0
-        peakHoldSamples = peakHoldSamples - 1
-    ELSE
-        peak = peak * peakRelease
-    IF peak &lt; 1e-7 THEN peak = 1e-7
-
-    IF peak &gt; ceilLin THEN targetGain = ceilLin / peak
-    ELSE                  targetGain = 1
-    gainEnvelope = gainEnvelope + (targetGain - gainEnvelope)
-                               * (targetGain &lt; gainEnvelope ? gainAttack : gainRelease)
-
-    delayLine[writePosition] = x
-    readPosition = writePosition - delaySamples
-    IF readPosition &lt; 0 THEN readPosition = readPosition + lineLength
-
-    // The detector runs UNDELAYED and controls the sample that leaves after
-    // the look-ahead delay, so the gain is already down when a transient arrives.
-    out = bypassed ? x : delayLine[readPosition] * gainEnvelope
-
-    writePosition = writePosition + 1
-    IF writePosition &gt;= lineLength THEN writePosition = 0
-</code></pre>
-            <p>Source: <code>chain3_agc_gate_limit.cmajor</code>, processor <code>Limiter</code>.</p>
-          </details>
+            <summary>Algorithm and pseudocode</summary></details>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
         <li class="signal-node" data-status="implemented">
