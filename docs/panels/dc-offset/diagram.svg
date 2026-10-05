@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="344" font-family="sans-serif">
+<text x="200" y="28" text-anchor="middle" font-size="16" font-weight="bold">DC Offset Blocker</text>
+<rect x="40.0" y="56.0" width="320" height="46" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+<text x="200" y="84.0" text-anchor="middle" font-size="13">1. read x[n]</text>
+<line x1="200" y1="102" x2="200" y2="128" stroke="#333" stroke-width="2"/>
+<polygon points="194,118 206,118 200,128" fill="#333"/>
+<rect x="40.0" y="128.0" width="320" height="46" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+<text x="200" y="156.0" text-anchor="middle" font-size="13">2. y = x - x_prev + alpha * y_prev</text>
+<text x="200" y="188.0" text-anchor="middle" font-size="10" fill="#555">R, :, x, _, p, r, e, v, +, y, _, p, r, e, v, +, a, l, p, h, a</text>
+<line x1="200" y1="174" x2="200" y2="200" stroke="#333" stroke-width="2"/>
+<polygon points="194,190 206,190 200,200" fill="#333"/>
+<rect x="40.0" y="200.0" width="320" height="46" rx="8" fill="#fff8e1" stroke="#f9a825" stroke-width="2"/>
+<text x="200" y="228.0" text-anchor="middle" font-size="13">3. x_prev := x;  y_prev := y</text>
+<text x="200" y="260.0" text-anchor="middle" font-size="10" fill="#555">W, :, x, _, p, r, e, v, +, y, _, p, r, e, v</text>
+<line x1="200" y1="246" x2="200" y2="272" stroke="#333" stroke-width="2"/>
+<polygon points="194,262 206,262 200,272" fill="#333"/>
+<rect x="40.0" y="272.0" width="320" height="46" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+<text x="200" y="300.0" text-anchor="middle" font-size="13">4. out = bypassed ? x : y</text>
+</svg>
