@@ -1,0 +1,150 @@
+# SeaMic algorithm flow spec — DC Offset Blocker (Tier 1 source of truth).
+# Declarative diagram + measurements. The panel generator (python/tools/gen_panel.py)
+# validates every step fragment against the Tier 2 oracle source: if diagram and
+# code diverge, generation FAILS. Measurements below are single-sourced here and
+# were obtained from notebooks/01_dc_offset.ipynb (executed 2026-10-05).
+
+[panel]
+id = "dc-offset"
+title = "DC Offset Blocker"
+equation = "y[n] = x[n] - x[n-1] + alpha * y[n-1]"
+pole = "alpha = exp(-2*pi*fc/fs)"
+defaults = "fc = 20 Hz, fs = 16000 Hz, alpha = 0.9921767803"
+oracle = "python/seamic_ref/dc_offset.py"
+product = "cpp/seamic/dc_blocker.h"
+product_status = "SOURCE WRITTEN - not yet compiled (no C++ toolchain on this machine)"
+
+[layout]
+box_width = 320
+box_height = 46
+vertical_gap = 26
+
+[[state]]
+name = "x_prev"
+type = "float64"
+init = "0.0"
+meaning = "x[n-1]"
+
+[[state]]
+name = "y_prev"
+type = "float64"
+init = "0.0"
+meaning = "y[n-1]"
+
+[[state]]
+name = "alpha"
+type = "float64"
+init = "exp(-2*pi*20/fs)"
+meaning = "pole; set once in prepare()"
+
+[[state]]
+name = "bypassed"
+type = "bool"
+init = "true"
+meaning = "dry passthrough; state stays warm"
+
+[[step]]
+id = "read"
+label = "read x[n]"
+kind = "input"
+
+[[step]]
+id = "mac"
+label = "y = x - x_prev + alpha * y_prev"
+kind = "op"
+reads = ["x_prev", "y_prev", "alpha"]
+fragment = "y = x - self.x_prev + self.alpha * self.y_prev"
+
+[[step]]
+id = "store"
+label = "x_prev := x;  y_prev := y"
+kind = "state"
+writes = ["x_prev", "y_prev"]
+fragment = "self.y_prev = y"
+
+[[step]]
+id = "out"
+label = "out = bypassed ? x : y"
+kind = "output"
+fragment = "x if self.bypassed else y"
+
+[pseudocode]
+lines = [
+  "ON prepare(fs, fc=20): alpha := exp(-2*pi*fc/fs); reset()",
+  "ON reset(): x_prev := 0; y_prev := 0; bypassed := TRUE    (power-on dry, legacy parity)",
+  "ON setBypass(b): bypassed := b          (state keeps updating while bypassed)",
+  "FOR EACH sample x:",
+  "    y := x - x_prev + alpha * y_prev",
+  "    x_prev := x; y_prev := y",
+  "    out := bypassed ? x : y             (no clamp: true output reaches -1.98)",
+]
+
+[measurements]
+alpha_exact = "0.9921767803"
+alpha_taylor = "0.9921460184 (err +3.076e-05; shifts 20 Hz gain by 0.03 dB)"
+gain_20hz_db = "-2.976 (+/-0.05 gate)"
+freqz_max_err = "3.3e-16 over 400 log-spaced points"
+step_max_err_vs_lfilter = "0.0 on 64-sample step (<= 7e-15 on all probed inputs)"
+first_sample = "y[0] == x[0] (unity gain, no click, no priming)"
+dc_residue_8000 = "2.599e-28 for 0.5 DC step; tail monotone"
+settle_1e-4 = "1173 samples (~73.3 ms @ 16 kHz) after +1 step"
+clamp_peak_error = "0.980 (true output reaches -1.980)"
+clamp_corrupt_len = "~584 samples (~36 ms @ 16 kHz)"
+tail_rms_f32 = "8.83e-44"
+tail_rms_f64 = "1.95e-138"
+state_rule = "product state MUST be float64 (or wider than the audio word)"
+
+[[test]]
+id = "AC1a"
+name = "step response matches scipy lfilter"
+result = "PASS"
+
+[[test]]
+id = "AC1b"
+name = "white noise (48k) matches scipy"
+result = "PASS"
+
+[[test]]
+id = "AC1c"
+name = "speech-like sweep matches scipy"
+result = "PASS"
+
+[[test]]
+id = "AC2a"
+name = "DC converges to zero, monotone tail"
+result = "PASS"
+
+[[test]]
+id = "AC2b"
+name = "DC matches scipy"
+result = "PASS"
+
+[[test]]
+id = "AC3"
+name = "first sample unity gain, no priming"
+result = "PASS"
+
+[[test]]
+id = "AC3b"
+name = "bypass is dry, state stays warm (CMajor parity)"
+result = "PASS"
+
+[[test]]
+id = "AC4a"
+name = "analytic magnitude == freqz"
+result = "PASS"
+
+[[test]]
+id = "AC4b"
+name = "cutoff region -2.976 dB +/- 0.05 @ 20 Hz"
+result = "PASS"
+
+[[test]]
+id = "AC5"
+name = "clamping y corrupts state (guard)"
+result = "PASS"
+
+[[test]]
+id = "AC6"
+name = "float32 vs float64 tail (guard, informational)"
+result = "PASS"
