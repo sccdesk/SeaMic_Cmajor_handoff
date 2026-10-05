@@ -130,14 +130,12 @@
         <li class="signal-node" data-status="implemented">
           <span class="signal-node-type">INPUT · 16 kHz · f32</span>
           <strong>ADC</strong>
-          <span class="signal-node-detail">Browser microphone capture.</span>
           <span class="signal-stage-status">Host input available</span>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
         <li class="signal-node" data-status="bypassed" data-solo="dc">
           <span class="signal-node-type">DSP MODULE 01</span>
           <strong>DC Offset Removal</strong>
-          <span class="signal-node-detail">20 Hz high-pass filter before AEC; also cleans the reference.</span>
           <span class="signal-stage-status">Implemented · starts bypassed</span>
           <span class="module-state" data-state="bypassed">BYPASSED</span>
           <button class="module-toggle" type="button" data-module="dc" aria-pressed="false" disabled>Activate</button>
@@ -150,7 +148,6 @@
         <li class="signal-node" data-status="bypassed" data-solo="aec">
           <span class="signal-node-type">DSP MODULE 02</span>
           <strong>AEC</strong>
-          <span class="signal-node-detail">Real-time NLMS echo cancellation using the application playback bus.</span>
           <span class="signal-stage-status">Implemented · starts bypassed · needs a playback reference</span>
           <span class="module-state" data-state="bypassed">BYPASSED · AWAITING REFERENCE</span>
           <button class="module-toggle" type="button" data-module="aec" aria-pressed="false" disabled>Activate</button>
@@ -163,7 +160,6 @@
         <li class="signal-node" data-status="bypassed" data-solo="dereverb">
           <span class="signal-node-type">DSP MODULE 03</span>
           <strong>De-Reverb (Envelope Masking)</strong>
-          <span class="signal-node-detail">Conservative envelope-based attenuation; no gain boost.</span>
           <span class="signal-stage-status">Implemented · starts bypassed</span>
           <span class="module-state" data-state="bypassed">BYPASSED</span>
           <button class="module-toggle" type="button" data-module="dereverb" aria-pressed="false" disabled>Activate</button>
@@ -176,7 +172,6 @@
         <li class="signal-node" data-status="rebuild" data-solo="vad">
           <span class="signal-node-type">DSP MODULE 04</span>
           <strong>Noise Gate / VAD</strong>
-          <span class="signal-node-detail">Target: Otsu + envelope follower. Current implementation: RMS, noise floor, SNR hysteresis, and soft gate.</span>
           <span class="signal-stage-status">Under rework · skeleton kept for the rebuild</span>
           <span class="module-state" data-state="rebuild">POR REHACER</span>
           <div class="patch-gui" id="patch-gui-vad" aria-live="polite">Module under rework — the controls will be rebuilt from scratch.</div>
@@ -187,7 +182,6 @@
         <li class="signal-node" data-status="bypassed" data-solo="loudness">
           <span class="signal-node-type">DSP MODULE 05</span>
           <strong>Loudness Normalisation</strong>
-          <span class="signal-node-detail">K-weighted metering and AGC with an RMS detector and gain computer.</span>
           <span class="signal-stage-status">Starts bypassed · integrated EBU R128 pending</span>
           <span class="module-state" data-state="bypassed">BYPASSED</span>
           <button class="module-toggle" type="button" data-module="loudness" aria-pressed="false" disabled>Activate</button>
@@ -200,7 +194,6 @@
         <li class="signal-node" data-status="bypassed" data-solo="tone">
           <span class="signal-node-type">DSP MODULE 06</span>
           <strong>Tone / Warmth</strong>
-          <span class="signal-node-detail">Target: symmetric waveshaper + shelf. Current implementation: asymmetric rational waveshaper followed by a DC blocker.</span>
           <span class="signal-stage-status">Starts bypassed · symmetric waveshaper and shelf pending</span>
           <span class="module-state" data-state="bypassed">BYPASSED</span>
           <button class="module-toggle" type="button" data-module="tone" aria-pressed="false" disabled>Activate</button>
@@ -213,7 +206,6 @@
         <li class="signal-node" data-status="bypassed" data-solo="limiter">
           <span class="signal-node-type">DSP MODULE 07</span>
           <strong>Look-Ahead Limiter</strong>
-          <span class="signal-node-detail">5 ms delay (80 samples at 16 kHz), peak detector, and a −1 dBFS sample-peak ceiling.</span>
           <span class="signal-stage-status">Implemented · starts bypassed; no oversampled true-peak detection</span>
           <span class="module-state" data-state="bypassed">BYPASSED</span>
           <button class="module-toggle" type="button" data-module="limiter" aria-pressed="false" disabled>Activate</button>
@@ -226,21 +218,18 @@
         <li class="signal-node" data-status="implemented">
           <span class="signal-node-type">AUDIO OUTPUT</span>
           <strong>Output</strong>
-          <span class="signal-node-detail">Patch output to the browser audio device.</span>
           <span class="signal-stage-status">Implemented · WebAudio host</span>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
         <li class="signal-node" data-status="pending">
           <span class="signal-node-type">TRANSPORT</span>
           <strong>Opus Encoder</strong>
-          <span class="signal-node-detail">Voice encoding after the patch.</span>
           <span class="signal-stage-status">Pending · not part of the current Cmajor patches</span>
         </li>
         <li class="signal-connector" aria-hidden="true">▼</li>
         <li class="signal-node" data-status="pending">
           <span class="signal-node-type">TRANSPORT</span>
           <strong>Network</strong>
-          <span class="signal-node-detail">Transport of the encoded stream.</span>
           <span class="signal-stage-status">Pending · not part of the current Cmajor patches</span>
         </li>
       </ol>
